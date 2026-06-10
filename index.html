@@ -232,6 +232,20 @@
     }
     .model-chip:active, .model-chip.selected { border-color: var(--turf-border); background: var(--turf-light); color: var(--turf); }
 
+    .qty-row { display: flex; align-items: center; gap: 0; border: 1.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .qty-btn {
+      background: var(--surface); border: none; color: var(--turf);
+      font-size: 22px; font-weight: 700; width: 56px; height: 52px;
+      cursor: pointer; transition: background 0.1s; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .qty-btn:active { background: var(--turf-light); }
+    .qty-val {
+      flex: 1; text-align: center; font-size: 22px; font-weight: 800;
+      color: var(--ink); border-left: 1.5px solid var(--border); border-right: 1.5px solid var(--border);
+      height: 52px; display: flex; align-items: center; justify-content: center;
+    }
+
     .btn-submit {
       width: 100%; padding: 16px; background: var(--pine); color: #fff;
       border: none; border-radius: var(--radius); font-size: 16px; font-weight: 700;
@@ -322,6 +336,28 @@
         </div>
       </div>
     </div>
+
+    <div>
+      <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span>Stats</span>
+        <button onclick="toggleStats()" id="btn-stats-toggle"
+          style="background:none;border:none;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.08em;padding:0">
+          Hide
+        </button>
+      </div>
+      <div id="stats-section">
+        <div class="stats-bar">
+          <div class="stat-card">
+            <div class="stat-label">Total Lost 😬</div>
+            <div class="stat-value loading" id="stat-total-lost">–</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Most Owned</div>
+            <div class="stat-value loading" id="stat-most-owned">–</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -384,6 +420,14 @@
           autocomplete="off" autocorrect="off" spellcheck="false" oninput="onModelInput()">
         <div class="model-suggestions" id="model-suggestions"></div>
       </div>
+      <div>
+        <div class="field-label">Quantity</div>
+        <div class="qty-row">
+          <button class="qty-btn" onclick="changeQty(-1)">−</button>
+          <span class="qty-val" id="qty-display">1</span>
+          <button class="qty-btn" onclick="changeQty(1)">＋</button>
+        </div>
+      </div>
       <button class="btn-submit" id="btn-add-submit" onclick="submitAddBall()">＋&nbsp; Add to Stock</button>
     </div>
   </div>
@@ -403,7 +447,7 @@
 
 <script>
   // ── CONFIG — your GAS deployment URL ──────────────────────────
-  const API = "https://script.google.com/macros/s/AKfycbxiyinfuQOJBggeO9iJ9xwrUdcNVIDr_dM_f_1hPkWioQPKXVaNtBFkb3As3TNuQ0MO/exec";
+  const API = "https://script.google.com/macros/s/AKfycby48G9HQrb1RsqMioWVBkdz8ygZyxUNUYUQj1BAqMBCN2CqQBk86Njb2TS0SqQdZzj8/exec";
 
   // ── API helpers ───────────────────────────────────────────────
   async function apiGet(action, params) {
@@ -431,6 +475,7 @@
   let toastTimer;
   let selectedColour = "White";
   let selectedBrand  = null;
+  let addQty         = 1;
   let stockData      = [];
   let stockFilter    = null;
 
@@ -483,7 +528,14 @@
   }
 
   // ── Boot ──────────────────────────────────────────────────────
-  document.addEventListener("DOMContentLoaded", () => { loadBalls(); loadStats(); });
+  document.addEventListener("DOMContentLoaded", () => {
+    loadBalls();
+    loadStats();
+    if (!statsVisible) {
+      document.getElementById("stats-section").style.display = "none";
+      document.getElementById("btn-stats-toggle").textContent = "Show";
+    }
+  });
 
   document.addEventListener("click", e => {
     const wrap = document.getElementById("search-wrap");
@@ -689,8 +741,13 @@
     document.querySelectorAll(".model-chip").forEach(c => c.classList.toggle("selected", c.textContent === model));
   }
 
+  function changeQty(delta) {
+    addQty = Math.max(1, Math.min(36, addQty + delta));
+    document.getElementById("qty-display").textContent = addQty;
+  }
+
   function openAddBall() {
-    selectedColour = "White"; selectedBrand = null;
+    selectedColour = "White"; selectedBrand = null; addQty = 1;
     document.querySelectorAll(".colour-btn").forEach(b => b.classList.remove("selected"));
     document.querySelector('.colour-btn[data-colour="White"]').classList.add("selected");
     document.querySelectorAll(".brand-btn").forEach(b => b.classList.remove("selected"));
@@ -698,6 +755,7 @@
     document.getElementById("brand-other").value = "";
     document.getElementById("add-model").value   = "";
     document.getElementById("model-suggestions").innerHTML = "";
+    document.getElementById("qty-display").textContent    = "1";
     document.getElementById("btn-add-submit").disabled  = false;
     document.getElementById("btn-add-submit").innerHTML = "＋&nbsp; Add to Stock";
     openSheet("sheet-add");
@@ -708,6 +766,7 @@
     if (brand === "Other") brand = document.getElementById("brand-other").value.trim();
     const model  = document.getElementById("add-model").value.trim();
     const colour = selectedColour;
+    const qty    = addQty;
     if (!brand) { showToast("Please select a brand", "err"); return; }
     if (!model)  { showToast("Please enter a model", "err"); return; }
 
@@ -716,9 +775,11 @@
     btn.disabled  = true;
 
     try {
-      await apiPost("addBall", { brand, model, colour });
+      for (let i = 0; i < qty; i++) {
+        await apiPost("addBall", { brand, model, colour });
+      }
       closeAll();
-      showToast(`${ballEmoji(colour)} ${brand} ${model} added ✓`, "ok");
+      showToast(`${ballEmoji(colour)} ${brand} ${model} ×${qty} added ✓`, "ok");
       loadBalls();
     } catch(e) {
       btn.innerHTML = "＋&nbsp; Add to Stock";
@@ -777,14 +838,28 @@
   }
 
   // ── Stats ─────────────────────────────────────────────────────
+  let statsVisible = localStorage.getItem("balltracker-stats") !== "hidden";
+
+  function toggleStats() {
+    statsVisible = !statsVisible;
+    localStorage.setItem("balltracker-stats", statsVisible ? "visible" : "hidden");
+    document.getElementById("stats-section").style.display = statsVisible ? "" : "none";
+    document.getElementById("btn-stats-toggle").textContent = statsVisible ? "Hide" : "Show";
+  }
+
   async function loadStats() {
     document.getElementById("stat-today").className   = "stat-value loading";
     document.getElementById("stat-today").textContent = "–";
     document.getElementById("stat-last").className    = "stat-value loading";
     document.getElementById("stat-last").textContent  = "–";
+    document.getElementById("stat-total-lost").className   = "stat-value loading";
+    document.getElementById("stat-total-lost").textContent = "–";
+    document.getElementById("stat-most-owned").className   = "stat-value loading";
+    document.getElementById("stat-most-owned").textContent = "–";
 
     try {
       const s = await apiGet("getStats");
+
       const todayEl = document.getElementById("stat-today");
       todayEl.className   = "stat-value";
       todayEl.textContent = s.lostToday;
@@ -796,9 +871,23 @@
       } else {
         lastEl.textContent = "None yet";
       }
+
+      const totalEl = document.getElementById("stat-total-lost");
+      totalEl.className   = "stat-value";
+      totalEl.textContent = s.totalLost;
+
+      const mostEl = document.getElementById("stat-most-owned");
+      mostEl.className = "stat-value";
+      if (s.mostOwned) {
+        mostEl.innerHTML = `${s.mostOwned.count}<small>${escHtml(s.mostOwned.brand)} ${escHtml(s.mostOwned.model)}</small>`;
+      } else {
+        mostEl.textContent = "None yet";
+      }
     } catch(e) {
-      document.getElementById("stat-today").textContent = "–";
-      document.getElementById("stat-last").textContent  = "–";
+      document.getElementById("stat-today").textContent      = "–";
+      document.getElementById("stat-last").textContent       = "–";
+      document.getElementById("stat-total-lost").textContent = "–";
+      document.getElementById("stat-most-owned").textContent = "–";
     }
   }
 
