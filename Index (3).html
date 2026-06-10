@@ -2,7 +2,7 @@
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=430, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#1a1a1a" id="theme-color-meta">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -25,8 +25,6 @@
       --dd-hover:    #fff0f0;
       --radius:      14px;
     }
-
-    /* ── Dark theme — Club Red ── */
     [data-theme="dark"] {
       --pine:        #0d0d0d;
       --turf:        #ff4444;
@@ -41,37 +39,27 @@
       --border-light:#222222;
       --dd-hover:    #1f1212;
     }
-
-    *, *::before, *::after {
-      box-sizing: border-box; margin: 0; padding: 0;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    html { height: 100%; font-size: 16px; -webkit-text-size-adjust: none; text-size-adjust: none; }
-
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html { height: 100%; font-size: 16px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--ink);
-      min-height: 100vh;
-      width: 430px;
-      overflow-x: hidden;
+      background: var(--bg); color: var(--ink);
+      min-height: 100vh; min-height: -webkit-fill-available;
+      width: 100%; overflow-x: hidden;
       transition: background 0.25s, color 0.25s;
     }
+    .app { width: 100%; min-height: 100vh; display: flex; flex-direction: column; }
 
-    .app { width: 430px; min-height: 100vh; display: flex; flex-direction: column; }
-
-    /* ── Header ── */
     header {
-      background: var(--pine); color: #ffffff;
+      background: var(--pine); color: #fff;
       padding: 14px 16px;
       padding-top: max(14px, env(safe-area-inset-top));
       display: flex; align-items: center; justify-content: space-between;
-      position: sticky; top: 0; z-index: 10; width: 430px;
+      position: sticky; top: 0; z-index: 10; width: 100%;
       transition: background 0.25s;
     }
     .header-left { display: flex; align-items: center; gap: 10px; }
-    header h1 { font-size: 17px; font-weight: 800; letter-spacing: -0.3px; color: #ffffff; }
+    header h1 { font-size: 17px; font-weight: 800; letter-spacing: -0.3px; color: #fff; }
     .header-right { display: flex; align-items: center; gap: 4px; }
     .btn-icon {
       background: none; border: none; color: rgba(255,255,255,0.6);
@@ -80,16 +68,13 @@
     }
     .btn-icon:active { color: white; background: rgba(255,255,255,0.1); }
 
-    /* ── Main ── */
     main { padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; width: 100%; flex: 1; }
 
     .section-label {
-      font-size: 10px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.1em;
-      color: var(--muted); margin-bottom: 8px;
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--muted); margin-bottom: 8px;
     }
 
-    /* ── In Play card ── */
     .in-play-card {
       padding: 14px 16px; border-radius: var(--radius);
       display: flex; align-items: center; gap: 14px;
@@ -107,7 +92,6 @@
     .ball-model  { font-size: 15px; font-weight: 600; color: var(--turf); margin-top: 2px; }
     .empty-label { color: var(--muted); font-size: 15px; opacity: 0.6; }
 
-    /* ── Search ── */
     .search-wrap { position: relative; width: 100%; }
     .search-icon {
       position: absolute; left: 14px; top: 50%;
@@ -121,7 +105,6 @@
     }
     .search-input:focus { border-color: var(--turf-border); }
 
-    /* ── Dropdown ── */
     .dropdown {
       display: none; background: var(--surface); border-radius: var(--radius);
       margin-top: 4px; box-shadow: 0 6px 24px rgba(0,0,0,0.15);
@@ -131,14 +114,12 @@
     .dd-item {
       padding: 12px 16px; font-size: 15px; cursor: pointer;
       display: flex; align-items: center; gap: 10px;
-      border-bottom: 1px solid var(--border-light); transition: background 0.1s;
-      color: var(--ink);
+      border-bottom: 1px solid var(--border-light); transition: background 0.1s; color: var(--ink);
     }
     .dd-item:last-child { border-bottom: none; }
     .dd-item:active { background: var(--dd-hover); }
     .dd-empty, .dd-loading { padding: 20px 16px; text-align: center; color: var(--muted); font-size: 15px; }
 
-    /* ── Buttons ── */
     .btn {
       width: 100%; padding: 16px; border: none; border-radius: var(--radius);
       font-size: 16px; font-weight: 700; cursor: pointer;
@@ -146,16 +127,12 @@
       display: flex; align-items: center; justify-content: center; gap: 8px;
     }
     .btn:active { transform: scale(0.97); }
-    .btn-lost   { background: var(--hazard); color: #ffffff; }
+    .btn-lost   { background: var(--hazard); color: #fff; }
     .btn-lost:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; transform: none; }
-    .btn-outline {
-      background: transparent; color: var(--turf);
-      border: 1.5px solid var(--turf-border); font-weight: 600; padding: 14px 16px;
-    }
-    .btn-pine   { background: var(--pine); color: #ffffff; }
+    .btn-outline { background: transparent; color: var(--turf); border: 1.5px solid var(--turf-border); font-weight: 600; padding: 14px 16px; }
+    .btn-pine   { background: var(--pine); color: #fff; }
     .btn-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-    /* ── Stats bar ── */
     .stats-bar { display: flex; gap: 10px; width: 100%; }
     .stat-card { flex: 1; background: var(--surface); border-radius: var(--radius); padding: 12px 14px; border: 1px solid var(--border); min-width: 0; transition: background 0.25s; }
     .stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 4px; }
@@ -163,13 +140,11 @@
     .stat-value.loading { color: var(--border); font-size: 14px; font-weight: 400; }
     .stat-value small { font-size: 11px; font-weight: 600; color: var(--muted); display: block; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    /* ── Overlay ── */
-    .overlay { display: none; position: fixed; top: 0; left: 0; width: 430px; height: 100%; background: rgba(0,0,0,0.55); z-index: 100; animation: fadeIn 0.2s ease; }
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 100; animation: fadeIn 0.2s ease; }
     .overlay.open { display: block; }
 
-    /* ── Bottom sheet ── */
     .sheet {
-      position: fixed; bottom: 0; left: 0; width: 430px;
+      position: fixed; bottom: 0; left: 0; right: 0;
       transform: translateY(100%);
       background: var(--surface); border-radius: 20px 20px 0 0; z-index: 101;
       transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), background 0.25s;
@@ -187,7 +162,6 @@
     .sheet-close { background: none; border: none; font-size: 22px; color: var(--muted); cursor: pointer; line-height: 1; padding: 4px; }
     .sheet-body { overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
 
-    /* ── Restore items ── */
     .restore-item {
       padding: 15px 20px; border-bottom: 1px solid var(--border-light); cursor: pointer;
       display: flex; align-items: center; justify-content: space-between; transition: background 0.1s;
@@ -199,10 +173,7 @@
     .restore-arrow { color: var(--turf); font-size: 20px; font-weight: 700; flex-shrink: 0; }
     .sheet-empty { padding: 40px 20px; text-align: center; color: var(--muted); }
 
-    /* ── Stock ── */
-    .stock-filters {
-      display: flex; gap: 7px; padding: 12px 20px 0; flex-wrap: wrap; flex-shrink: 0;
-    }
+    .stock-filters { display: flex; gap: 7px; padding: 12px 20px 0; flex-wrap: wrap; flex-shrink: 0; }
     .filter-chip {
       padding: 5px 12px; border-radius: 20px;
       border: 1.5px solid var(--border); background: var(--surface);
@@ -211,19 +182,15 @@
     }
     .filter-chip.active { border-color: var(--turf-border); background: var(--turf-light); color: var(--turf); }
     .filter-chip:active { transform: scale(0.95); }
-    .stock-item {
-      padding: 14px 20px; border-bottom: 1px solid var(--border-light);
-      display: flex; align-items: center; gap: 12px;
-    }
+    .stock-item { padding: 14px 20px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; gap: 12px; }
     .stock-item:last-child { border-bottom: none; }
     .stock-emoji { font-size: 22px; flex-shrink: 0; }
     .stock-info { flex: 1; min-width: 0; }
     .stock-name { font-size: 15px; font-weight: 600; color: var(--ink); }
     .stock-colour { font-size: 12px; color: var(--muted); margin-top: 1px; }
-    .stock-count { background: var(--turf); color: var(--surface); font-size: 13px; font-weight: 700; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; }
-    .stock-count.low { background: var(--hazard); color: #ffffff; }
+    .stock-count { background: var(--turf); color: #fff; font-size: 13px; font-weight: 700; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; }
+    .stock-count.low { background: var(--hazard); }
 
-    /* ── Add Ball form ── */
     .form-body { padding: 16px 20px 24px; display: flex; flex-direction: column; gap: 16px; }
     .field-label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 7px; }
 
@@ -266,19 +233,18 @@
     .model-chip:active, .model-chip.selected { border-color: var(--turf-border); background: var(--turf-light); color: var(--turf); }
 
     .btn-submit {
-      width: 100%; padding: 16px; background: var(--pine); color: #ffffff;
+      width: 100%; padding: 16px; background: var(--pine); color: #fff;
       border: none; border-radius: var(--radius); font-size: 16px; font-weight: 700;
       cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px;
     }
     .btn-submit:active { transform: scale(0.97); }
     .btn-submit:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; transform: none; }
 
-    /* ── Toast ── */
     .toast {
       position: fixed; top: 60px; left: 50%;
       transform: translateX(-50%) translateY(-14px);
       padding: 11px 20px; border-radius: 24px;
-      font-size: 14px; font-weight: 600; color: #ffffff; white-space: nowrap;
+      font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap;
       z-index: 200; opacity: 0; pointer-events: none;
       box-shadow: 0 4px 14px rgba(0,0,0,0.25);
       transition: opacity 0.25s ease, transform 0.25s ease;
@@ -288,40 +254,30 @@
     .toast.lost { background: var(--hazard); }
     .toast.err  { background: #374151; }
 
-    /* ── Spinner ── */
     .spin {
       display: inline-block; width: 16px; height: 16px;
       border: 2px solid rgba(255,255,255,0.3); border-top-color: white;
       border-radius: 50%; animation: spin 0.75s linear infinite; vertical-align: middle;
     }
-
     @keyframes spin   { to { transform: rotate(360deg); } }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   </style>
 </head>
 <body>
-<div class="app" id="app-root">
-
-  <!-- Header -->
+<div class="app">
   <header>
     <div class="header-left">
       <span style="font-size:18px">⛳</span>
       <h1>Ball Tracker</h1>
     </div>
     <div class="header-right">
-      <span id="ball-count-badge" style="
-        font-size:12px; font-weight:700; color:rgba(255,255,255,0.75);
-        background:rgba(255,255,255,0.12); border-radius:20px;
-        padding:3px 10px; letter-spacing:0.02em;
-      ">–</span>
+      <span id="ball-count-badge" style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.75);background:rgba(255,255,255,0.12);border-radius:20px;padding:3px 10px;letter-spacing:0.02em">–</span>
       <button class="btn-icon" id="btn-dark" onclick="toggleDark()" title="Toggle dark mode">🌙</button>
       <button class="btn-icon" onclick="loadBalls(); loadStats();" title="Refresh">↺</button>
     </div>
   </header>
 
   <main>
-
-    <!-- In Play -->
     <div>
       <div class="section-label">In Play</div>
       <div class="in-play-card empty" id="in-play-card">
@@ -330,7 +286,6 @@
       </div>
     </div>
 
-    <!-- Select Ball -->
     <div>
       <div class="section-label">Select Ball</div>
       <div class="search-wrap" id="search-wrap">
@@ -345,11 +300,8 @@
       </div>
     </div>
 
-    <!-- Action buttons -->
     <div style="display:flex;flex-direction:column;gap:10px">
-      <button class="btn btn-lost" id="btn-lost" disabled onclick="markAsLost()">
-        ⛳&nbsp; Mark as Lost
-      </button>
+      <button class="btn btn-lost" id="btn-lost" disabled onclick="markAsLost()">⛳&nbsp; Mark as Lost</button>
       <div class="btn-grid">
         <button class="btn btn-outline" onclick="openRestore()">↩&nbsp; Restore</button>
         <button class="btn btn-pine"    onclick="openAddBall()">＋&nbsp; Add Ball</button>
@@ -357,7 +309,6 @@
       <button class="btn btn-outline" onclick="openStock()">📦&nbsp; Current Ball Stock</button>
     </div>
 
-    <!-- Stats -->
     <div>
       <div class="section-label">Today's Round</div>
       <div class="stats-bar">
@@ -371,26 +322,20 @@
         </div>
       </div>
     </div>
-
   </main>
 </div>
 
-<!-- Shared overlay -->
 <div class="overlay" id="overlay" onclick="closeAll()"></div>
 
-<!-- Restore sheet -->
 <div class="sheet" id="sheet-restore">
   <div class="sheet-handle"></div>
   <div class="sheet-header">
     <span class="sheet-title">Restore a Ball</span>
     <button class="sheet-close" onclick="closeAll()">✕</button>
   </div>
-  <div class="sheet-body" id="body-restore">
-    <div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span></div>
-  </div>
+  <div class="sheet-body" id="body-restore"></div>
 </div>
 
-<!-- Add Ball sheet -->
 <div class="sheet" id="sheet-add">
   <div class="sheet-handle"></div>
   <div class="sheet-header">
@@ -401,24 +346,16 @@
     <div class="form-body">
       <div>
         <div class="field-label">Colour</div>
-        <div class="colour-grid" id="colour-grid">
-          <button class="colour-btn selected" data-colour="White" onclick="selectColour(this)">
-            <span class="emoji">⚪</span><span class="label">White</span>
-          </button>
-          <button class="colour-btn" data-colour="Yellow" onclick="selectColour(this)">
-            <span class="emoji">🟡</span><span class="label">Yellow</span>
-          </button>
-          <button class="colour-btn" data-colour="Orange" onclick="selectColour(this)">
-            <span class="emoji">🟠</span><span class="label">Orange</span>
-          </button>
-          <button class="colour-btn" data-colour="Red" onclick="selectColour(this)">
-            <span class="emoji">🔴</span><span class="label">Red</span>
-          </button>
+        <div class="colour-grid">
+          <button class="colour-btn selected" data-colour="White" onclick="selectColour(this)"><span class="emoji">⚪</span><span class="label">White</span></button>
+          <button class="colour-btn" data-colour="Yellow" onclick="selectColour(this)"><span class="emoji">🟡</span><span class="label">Yellow</span></button>
+          <button class="colour-btn" data-colour="Orange" onclick="selectColour(this)"><span class="emoji">🟠</span><span class="label">Orange</span></button>
+          <button class="colour-btn" data-colour="Red" onclick="selectColour(this)"><span class="emoji">🔴</span><span class="label">Red</span></button>
         </div>
       </div>
       <div>
         <div class="field-label">Brand</div>
-        <div class="brand-grid" id="brand-grid">
+        <div class="brand-grid">
           <button class="brand-btn" data-brand="Titleist"   onclick="selectBrand(this)">Titleist</button>
           <button class="brand-btn" data-brand="Callaway"   onclick="selectBrand(this)">Callaway</button>
           <button class="brand-btn" data-brand="TaylorMade" onclick="selectBrand(this)">TaylorMade</button>
@@ -447,44 +384,57 @@
           autocomplete="off" autocorrect="off" spellcheck="false" oninput="onModelInput()">
         <div class="model-suggestions" id="model-suggestions"></div>
       </div>
-      <button class="btn-submit" id="btn-add-submit" onclick="submitAddBall()">
-        ＋&nbsp; Add to Stock
-      </button>
+      <button class="btn-submit" id="btn-add-submit" onclick="submitAddBall()">＋&nbsp; Add to Stock</button>
     </div>
   </div>
 </div>
 
-<!-- Current Stock sheet -->
 <div class="sheet" id="sheet-stock">
   <div class="sheet-handle"></div>
   <div class="sheet-header">
     <span class="sheet-title">Current Ball Stock</span>
     <button class="sheet-close" onclick="closeAll()">✕</button>
   </div>
-  <!-- Colour filter chips (dynamic) -->
   <div class="stock-filters" id="stock-filters" style="display:none"></div>
-  <div class="sheet-body" id="body-stock">
-    <div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>
-  </div>
+  <div class="sheet-body" id="body-stock"></div>
 </div>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
-  /* ── State ── */
-  let allBalls       = [];
-  let filteredBalls  = [];
-  let selected       = null;
-  let ddOpen         = false;
-  let pending        = false;
+  // ── CONFIG — your GAS deployment URL ──────────────────────────
+  const API = "https://script.google.com/macros/s/AKfycbzP6onbHYZ53Nr_efRYscIehGC9ZKuTo0TtRwPfOBE7nP2yQqJlD7vgxP34sSXKyQEJ/exec";
+
+  // ── API helpers ───────────────────────────────────────────────
+  async function apiGet(action, params) {
+    const url = new URL(API);
+    url.searchParams.set("action", action);
+    if (params) Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+    const res = await fetch(url.toString());
+    return res.json();
+  }
+
+  async function apiPost(action, body) {
+    const res = await fetch(API, {
+      method: "POST",
+      body: JSON.stringify({ action, ...body }),
+    });
+    return res.json();
+  }
+
+  // ── State ─────────────────────────────────────────────────────
+  let allBalls      = [];
+  let filteredBalls = [];
+  let selected      = null;
+  let ddOpen        = false;
+  let pending       = false;
   let toastTimer;
   let selectedColour = "White";
   let selectedBrand  = null;
-  let stockData      = [];       // full stock list for filtering
-  let stockFilter    = null;     // active colour filter or null
+  let stockData      = [];
+  let stockFilter    = null;
 
-  /* ── Dark mode ── */
+  // ── Dark mode ─────────────────────────────────────────────────
   (function() {
     const saved = localStorage.getItem("balltracker-theme");
     if (saved === "dark") applyTheme("dark");
@@ -494,18 +444,16 @@
     document.documentElement.setAttribute("data-theme", theme);
     const btn = document.getElementById("btn-dark");
     if (btn) btn.textContent = theme === "dark" ? "☀️" : "🌙";
-    document.getElementById("theme-color-meta").content =
-      theme === "dark" ? "#0d0d0d" : "#1a1a1a";
+    document.getElementById("theme-color-meta").content = theme === "dark" ? "#0d0d0d" : "#1a1a1a";
   }
 
   function toggleDark() {
-    const current = document.documentElement.getAttribute("data-theme");
-    const next    = current === "dark" ? "light" : "dark";
+    const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
     applyTheme(next);
     localStorage.setItem("balltracker-theme", next);
   }
 
-  /* ── Colour → emoji ── */
+  // ── Colour emoji ──────────────────────────────────────────────
   function ballEmoji(colour) {
     const c = (colour || "white").toLowerCase().trim();
     if (c === "yellow") return "🟡";
@@ -519,28 +467,23 @@
     return "⚪";
   }
 
-  /* ── Smart time label ── */
-  // Returns "HH:mm" if today, "dd/mm HH:mm" if a different day
-  function smartTimeLabel(isoOrMs) {
-    const d = new Date(isoOrMs);
+  // ── Smart time label ──────────────────────────────────────────
+  function smartTimeLabel(ts) {
+    const d   = new Date(ts);
     const now = new Date();
-    const isToday =
-      d.getFullYear() === now.getFullYear() &&
-      d.getMonth()    === now.getMonth()    &&
-      d.getDate()     === now.getDate();
-    const hh = String(d.getHours()).padStart(2, "0");
-    const mm = String(d.getMinutes()).padStart(2, "0");
+    const isToday = d.getFullYear() === now.getFullYear() &&
+                    d.getMonth()    === now.getMonth()    &&
+                    d.getDate()     === now.getDate();
+    const hh = String(d.getHours()).padStart(2,"0");
+    const mm = String(d.getMinutes()).padStart(2,"0");
     if (isToday) return `${hh}:${mm}`;
-    const dd = String(d.getDate()).padStart(2, "0");
-    const mo = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2,"0");
+    const mo = String(d.getMonth()+1).padStart(2,"0");
     return `${dd}/${mo} ${hh}:${mm}`;
   }
 
-  /* ── Boot ── */
-  document.addEventListener("DOMContentLoaded", () => {
-    loadBalls();
-    loadStats();
-  });
+  // ── Boot ──────────────────────────────────────────────────────
+  document.addEventListener("DOMContentLoaded", () => { loadBalls(); loadStats(); });
 
   document.addEventListener("click", e => {
     const wrap = document.getElementById("search-wrap");
@@ -548,8 +491,8 @@
     if (!wrap.contains(e.target) && !dd.contains(e.target)) closeDd();
   });
 
-  /* ── Load balls ── */
-  function loadBalls() {
+  // ── Load balls ────────────────────────────────────────────────
+  async function loadBalls() {
     const dd    = document.getElementById("dropdown");
     const input = document.getElementById("search-input");
     dd.innerHTML = '<div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>';
@@ -558,30 +501,26 @@
     input.placeholder = "Loading…";
     document.getElementById("search-icon").textContent = "⏳";
 
-    google.script.run
-      .withSuccessHandler(balls => {
-        allBalls = balls;
-        input.disabled    = false;
-        input.placeholder = `Search ${balls.length} ball${balls.length !== 1 ? "s" : ""}…`;
-        document.getElementById("search-icon").textContent = "🔍";
-        document.getElementById("ball-count-badge").textContent = `${balls.length} balls`;
-        renderDd(balls);
-        showToast(`${balls.length} balls ready`, "ok");
-      })
-      .withFailureHandler(err => {
-        dd.innerHTML = `<div class="dd-empty">⚠️ ${err.message || "Failed to load"}</div>`;
-        showToast("Failed to load balls", "err");
-        document.getElementById("search-icon").textContent = "🔍";
-      })
-      .getUniqueBalls();
+    try {
+      const balls = await apiGet("getUniqueBalls");
+      allBalls = balls;
+      input.disabled    = false;
+      input.placeholder = `Search ${balls.length} ball${balls.length !== 1 ? "s" : ""}…`;
+      document.getElementById("search-icon").textContent = "🔍";
+      document.getElementById("ball-count-badge").textContent = `${balls.length} balls`;
+      renderDd(balls);
+      showToast(`${balls.length} balls ready`, "ok");
+    } catch(err) {
+      dd.innerHTML = `<div class="dd-empty">⚠️ Failed to load</div>`;
+      showToast("Failed to load balls", "err");
+      document.getElementById("search-icon").textContent = "🔍";
+    }
   }
 
-  /* ── Search ── */
+  // ── Search ────────────────────────────────────────────────────
   function onSearch() {
     const q = document.getElementById("search-input").value.toLowerCase();
-    filteredBalls = allBalls.filter(b =>
-      (b.brand + " " + b.model).toLowerCase().includes(q)
-    );
+    filteredBalls = allBalls.filter(b => (b.brand + " " + b.model).toLowerCase().includes(q));
     renderDd(filteredBalls);
     openDd();
   }
@@ -606,7 +545,7 @@
   function openDd()  { document.getElementById("dropdown").classList.add("open"); ddOpen = true; }
   function closeDd() { document.getElementById("dropdown").classList.remove("open"); ddOpen = false; }
 
-  /* ── Select ball ── */
+  // ── Select ball ───────────────────────────────────────────────
   function selectBall(ball) {
     selected = ball;
     closeDd();
@@ -614,12 +553,12 @@
     renderDd(allBalls);
     document.getElementById("search-input").blur();
     const card  = document.getElementById("in-play-card");
-    const label = document.getElementById("in-play-label");
     card.className = "in-play-card filled";
     const icon = card.querySelector(".ball-icon");
     icon.className   = "ball-icon filled";
     icon.textContent = ballEmoji(ball.colour);
-    label.outerHTML  = `<div id="in-play-label"><div class="ball-brand">${escHtml(ball.brand)}</div><div class="ball-model">${escHtml(ball.model)}</div></div>`;
+    const label = document.getElementById("in-play-label");
+    label.outerHTML = `<div id="in-play-label"><div class="ball-brand">${escHtml(ball.brand)}</div><div class="ball-model">${escHtml(ball.model)}</div></div>`;
     document.getElementById("btn-lost").disabled = false;
   }
 
@@ -634,8 +573,8 @@
     document.getElementById("btn-lost").disabled = true;
   }
 
-  /* ── Mark as Lost ── */
-  function markAsLost() {
+  // ── Mark as Lost ──────────────────────────────────────────────
+  async function markAsLost() {
     if (!selected || pending) return;
     pending = true;
     const { brand, model, colour } = selected;
@@ -644,57 +583,50 @@
     btn.disabled  = true;
     clearSelection();
 
-    google.script.run
-      .withSuccessHandler(res => {
-        pending = false;
-        btn.innerHTML = "⛳&nbsp; Mark as Lost";
-        showToast(res.success ? `${brand} ${model} — lost ⛳` : (res.message || "Something went wrong"), res.success ? "lost" : "err");
-        loadBalls(); loadStats();
-      })
-      .withFailureHandler(() => {
-        pending = false;
-        btn.innerHTML = "⛳&nbsp; Mark as Lost";
-        showToast("Failed to save — try again", "err");
-        loadBalls();
-      })
-      .markAsLost(brand, model, colour);
+    try {
+      const res = await apiPost("markAsLost", { brand, model, colour });
+      showToast(res.success ? `${brand} ${model} — lost ⛳` : (res.message || "Something went wrong"), res.success ? "lost" : "err");
+    } catch(e) {
+      showToast("Failed to save — try again", "err");
+    }
+    pending = false;
+    btn.innerHTML = "⛳&nbsp; Mark as Lost";
+    loadBalls(); loadStats();
   }
 
-  /* ── Sheet helpers ── */
+  // ── Sheet helpers ─────────────────────────────────────────────
   function openSheet(id) {
     document.getElementById("overlay").classList.add("open");
     document.getElementById(id).classList.add("open");
   }
   function closeAll() {
     document.getElementById("overlay").classList.remove("open");
-    ["sheet-restore","sheet-add","sheet-stock"].forEach(id =>
-      document.getElementById(id).classList.remove("open")
-    );
+    ["sheet-restore","sheet-add","sheet-stock"].forEach(id => document.getElementById(id).classList.remove("open"));
   }
 
-  /* ── Restore ── */
-  function openRestore() {
+  // ── Restore ───────────────────────────────────────────────────
+  async function openRestore() {
     const body = document.getElementById("body-restore");
     body.innerHTML = '<div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>';
     openSheet("sheet-restore");
-    google.script.run
-      .withSuccessHandler(balls => {
-        if (!balls.length) { body.innerHTML = '<div class="sheet-empty">No recently lost balls</div>'; return; }
-        body.innerHTML = balls.map(b =>
-          `<div class="restore-item" data-row="${b.rowIndex}" data-brand="${escAttr(b.brand)}" data-model="${escAttr(b.model)}">
-            <div style="display:flex;align-items:center;gap:10px">
-              <span style="font-size:22px">${ballEmoji(b.colour)}</span>
-              <div>
-                <div class="restore-name">${escHtml(b.brand)} ${escHtml(b.model)}</div>
-                <div class="restore-time">Lost ${escHtml(b.timeLabel)}</div>
-              </div>
+    try {
+      const balls = await apiGet("getRecentLost", { n: 10 });
+      if (!balls.length) { body.innerHTML = '<div class="sheet-empty">No recently lost balls</div>'; return; }
+      body.innerHTML = balls.map(b =>
+        `<div class="restore-item" data-row="${b.rowIndex}" data-brand="${escAttr(b.brand)}" data-model="${escAttr(b.model)}">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:22px">${ballEmoji(b.colour)}</span>
+            <div>
+              <div class="restore-name">${escHtml(b.brand)} ${escHtml(b.model)}</div>
+              <div class="restore-time">Lost ${escHtml(b.timeLabel)}</div>
             </div>
-            <span class="restore-arrow">↩</span>
-          </div>`
-        ).join("");
-      })
-      .withFailureHandler(() => { body.innerHTML = '<div class="sheet-empty">⚠️ Failed to load</div>'; })
-      .getRecentLost(10);
+          </div>
+          <span class="restore-arrow">↩</span>
+        </div>`
+      ).join("");
+    } catch(e) {
+      body.innerHTML = '<div class="sheet-empty">⚠️ Failed to load</div>';
+    }
   }
 
   document.addEventListener("click", e => {
@@ -702,19 +634,18 @@
     if (item) restoreBall(parseInt(item.dataset.row), item.dataset.brand, item.dataset.model);
   });
 
-  function restoreBall(rowIndex, brand, model) {
+  async function restoreBall(rowIndex, brand, model) {
     closeAll();
-    google.script.run
-      .withSuccessHandler(() => {
-        showToast(`${brand} ${model} restored ✓`, "ok");
-        loadBalls();
-        loadStats(); // ← refresh stats after restore too
-      })
-      .withFailureHandler(() => { showToast("Restore failed — try again", "err"); })
-      .restoreBall(rowIndex);
+    try {
+      await apiPost("restoreBall", { rowIndex });
+      showToast(`${brand} ${model} restored ✓`, "ok");
+    } catch(e) {
+      showToast("Restore failed — try again", "err");
+    }
+    loadBalls(); loadStats();
   }
 
-  /* ── Add Ball ── */
+  // ── Add Ball ──────────────────────────────────────────────────
   function selectColour(btn) {
     document.querySelectorAll(".colour-btn").forEach(b => b.classList.remove("selected"));
     btn.classList.add("selected");
@@ -725,55 +656,41 @@
     document.querySelectorAll(".brand-btn").forEach(b => b.classList.remove("selected"));
     btn.classList.add("selected");
     selectedBrand = btn.dataset.brand;
-    const otherInput = document.getElementById("brand-other");
-    if (selectedBrand === "Other") {
-      otherInput.style.display = "block";
-      otherInput.focus();
-    } else {
-      otherInput.style.display = "none";
-      otherInput.value = "";
-      updateModelSuggestions(selectedBrand);
-    }
+    const other = document.getElementById("brand-other");
+    if (selectedBrand === "Other") { other.style.display = "block"; other.focus(); }
+    else { other.style.display = "none"; other.value = ""; updateModelSuggestions(selectedBrand); }
   }
 
   const knownModels = {
-    "Titleist":    ["Pro V1", "Pro V1x", "AVX", "Tour Speed", "Velocity", "TruFeel"],
-    "Callaway":    ["Chrome Soft", "Chrome Tour", "Supersoft", "ERC Soft", "Warbird"],
-    "TaylorMade":  ["TP5", "TP5x", "Tour Response", "Soft Response", "Distance+"],
-    "Srixon":      ["Z-Star", "Z-Star XV", "Q-Star", "Soft Feel", "AD333"],
-    "Bridgestone": ["TOUR B X", "TOUR B XS", "TOUR B RX", "e12 Contact", "e6"],
-    "Wilson":      ["Staff Model", "Duo Soft", "Duo Optix", "Ultra 500"],
-    "Vice":        ["Pro", "Pro Soft", "Drive", "Tour"],
-    "Volvik":      ["Vivid", "Power Soft", "XTREM"],
-    "Pinnacle":    ["Rush", "Gold", "Soft"],
-    "Nike":        ["RZN Black", "RZN Platinum", "Mojo", "One Platinum"],
-    "Maxfli":      ["Tour", "Tour X", "Softfli", "U/6"],
+    "Titleist":    ["Pro V1","Pro V1x","AVX","Tour Speed","Velocity","TruFeel"],
+    "Callaway":    ["Chrome Soft","Chrome Tour","Supersoft","ERC Soft","Warbird"],
+    "TaylorMade":  ["TP5","TP5x","Tour Response","Soft Response","Distance+"],
+    "Srixon":      ["Z-Star","Z-Star XV","Q-Star","Soft Feel","AD333"],
+    "Bridgestone": ["TOUR B X","TOUR B XS","TOUR B RX","e12 Contact","e6"],
+    "Wilson":      ["Staff Model","Duo Soft","Duo Optix","Ultra 500"],
+    "Vice":        ["Pro","Pro Soft","Drive","Tour"],
+    "Volvik":      ["Vivid","Power Soft","XTREM"],
+    "Pinnacle":    ["Rush","Gold","Soft"],
+    "Nike":        ["RZN Black","RZN Platinum","Mojo","One Platinum"],
+    "Maxfli":      ["Tour","Tour X","Softfli","U/6"],
     "Kirkland":    ["Signature"],
   };
 
   function updateModelSuggestions(brand) {
-    const suggestions = document.getElementById("model-suggestions");
+    const s = document.getElementById("model-suggestions");
     const models = knownModels[brand] || [];
-    if (!models.length) { suggestions.innerHTML = ""; return; }
-    suggestions.innerHTML = models.map(m =>
-      `<button class="model-chip" onclick="pickModel('${escAttr(m)}')">${escHtml(m)}</button>`
-    ).join("");
+    s.innerHTML = models.map(m => `<button class="model-chip" onclick="pickModel('${escAttr(m)}')">${escHtml(m)}</button>`).join("");
   }
 
-  function onModelInput() {
-    document.querySelectorAll(".model-chip").forEach(c => c.classList.remove("selected"));
-  }
+  function onModelInput() { document.querySelectorAll(".model-chip").forEach(c => c.classList.remove("selected")); }
 
   function pickModel(model) {
     document.getElementById("add-model").value = model;
-    document.querySelectorAll(".model-chip").forEach(c => {
-      c.classList.toggle("selected", c.textContent === model);
-    });
+    document.querySelectorAll(".model-chip").forEach(c => c.classList.toggle("selected", c.textContent === model));
   }
 
   function openAddBall() {
-    selectedColour = "White";
-    selectedBrand  = null;
+    selectedColour = "White"; selectedBrand = null;
     document.querySelectorAll(".colour-btn").forEach(b => b.classList.remove("selected"));
     document.querySelector('.colour-btn[data-colour="White"]').classList.add("selected");
     document.querySelectorAll(".brand-btn").forEach(b => b.classList.remove("selected"));
@@ -786,7 +703,7 @@
     openSheet("sheet-add");
   }
 
-  function submitAddBall() {
+  async function submitAddBall() {
     let brand = selectedBrand;
     if (brand === "Other") brand = document.getElementById("brand-other").value.trim();
     const model  = document.getElementById("add-model").value.trim();
@@ -798,64 +715,50 @@
     btn.innerHTML = '<span class="spin"></span> Saving…';
     btn.disabled  = true;
 
-    google.script.run
-      .withSuccessHandler(() => {
-        closeAll();
-        showToast(`${ballEmoji(colour)} ${brand} ${model} added ✓`, "ok");
-        loadBalls();
-      })
-      .withFailureHandler(() => {
-        btn.innerHTML = "＋&nbsp; Add to Stock";
-        btn.disabled  = false;
-        showToast("Failed to add ball — try again", "err");
-      })
-      .addBall(brand, model, colour);
+    try {
+      await apiPost("addBall", { brand, model, colour });
+      closeAll();
+      showToast(`${ballEmoji(colour)} ${brand} ${model} added ✓`, "ok");
+      loadBalls();
+    } catch(e) {
+      btn.innerHTML = "＋&nbsp; Add to Stock";
+      btn.disabled  = false;
+      showToast("Failed to add ball — try again", "err");
+    }
   }
 
-  /* ── Stock with colour filters ── */
-  function openStock() {
+  // ── Stock ─────────────────────────────────────────────────────
+  async function openStock() {
     stockFilter = null;
     const body    = document.getElementById("body-stock");
     const filters = document.getElementById("stock-filters");
     body.innerHTML    = '<div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>';
-    filters.style.display = "none";
-    filters.innerHTML     = "";
+    filters.style.display = "none"; filters.innerHTML = "";
     openSheet("sheet-stock");
 
-    google.script.run
-      .withSuccessHandler(balls => {
-        // Sort: count desc, then brand+model A-Z
-        balls.sort((a, b) =>
-          b.count - a.count ||
-          `${a.brand} ${a.model}`.localeCompare(`${b.brand} ${b.model}`)
-        );
-        stockData = balls;
+    try {
+      const balls = await apiGet("getUniqueBalls");
+      balls.sort((a, b) => b.count - a.count || `${a.brand} ${a.model}`.localeCompare(`${b.brand} ${b.model}`));
+      stockData = balls;
 
-        // Build dynamic colour filter chips
-        const colours = [...new Set(balls.map(b => b.colour || "White"))];
-        if (colours.length > 1) {
-          filters.innerHTML =
-            `<button class="filter-chip active" data-colour="all" onclick="setStockFilter(this,'all')">All</button>` +
-            colours.map(c =>
-              `<button class="filter-chip" data-colour="${escAttr(c)}" onclick="setStockFilter(this,'${escAttr(c)}')">${ballEmoji(c)} ${escHtml(c)}</button>`
-            ).join("");
-          filters.style.display = "flex";
-        }
-
-        renderStock(balls);
-      })
-      .withFailureHandler(() => { body.innerHTML = '<div class="sheet-empty">⚠️ Failed to load</div>'; })
-      .getUniqueBalls();
+      const colours = [...new Set(balls.map(b => b.colour || "White"))];
+      if (colours.length > 1) {
+        filters.innerHTML =
+          `<button class="filter-chip active" data-colour="all" onclick="setStockFilter(this,'all')">All</button>` +
+          colours.map(c => `<button class="filter-chip" data-colour="${escAttr(c)}" onclick="setStockFilter(this,'${escAttr(c)}')">${ballEmoji(c)} ${escHtml(c)}</button>`).join("");
+        filters.style.display = "flex";
+      }
+      renderStock(balls);
+    } catch(e) {
+      body.innerHTML = '<div class="sheet-empty">⚠️ Failed to load</div>';
+    }
   }
 
   function setStockFilter(btn, colour) {
     document.querySelectorAll(".filter-chip").forEach(c => c.classList.remove("active"));
     btn.classList.add("active");
     stockFilter = colour === "all" ? null : colour;
-    const filtered = stockFilter
-      ? stockData.filter(b => (b.colour || "White") === stockFilter)
-      : stockData;
-    renderStock(filtered);
+    renderStock(stockFilter ? stockData.filter(b => (b.colour || "White") === stockFilter) : stockData);
   }
 
   function renderStock(balls) {
@@ -873,37 +776,33 @@
     ).join("");
   }
 
-  /* ── Stats ── */
-  function loadStats() {
+  // ── Stats ─────────────────────────────────────────────────────
+  async function loadStats() {
     document.getElementById("stat-today").className   = "stat-value loading";
     document.getElementById("stat-today").textContent = "–";
     document.getElementById("stat-last").className    = "stat-value loading";
     document.getElementById("stat-last").textContent  = "–";
 
-    google.script.run
-      .withSuccessHandler(s => {
-        const todayEl = document.getElementById("stat-today");
-        todayEl.className   = "stat-value";
-        todayEl.textContent = s.lostToday;
+    try {
+      const s = await apiGet("getStats");
+      const todayEl = document.getElementById("stat-today");
+      todayEl.className   = "stat-value";
+      todayEl.textContent = s.lostToday;
 
-        const lastEl = document.getElementById("stat-last");
-        lastEl.className = "stat-value";
-        if (s.lastLost) {
-          // s.lastLost.ts is a ms timestamp from the backend
-          const timeStr = smartTimeLabel(s.lastLost.ts);
-          lastEl.innerHTML = `${timeStr}<small>${ballEmoji(s.lastLost.colour)} ${escHtml(s.lastLost.brand)} ${escHtml(s.lastLost.model)}</small>`;
-        } else {
-          lastEl.textContent = "None yet";
-        }
-      })
-      .withFailureHandler(() => {
-        document.getElementById("stat-today").textContent = "–";
-        document.getElementById("stat-last").textContent  = "–";
-      })
-      .getStats();
+      const lastEl = document.getElementById("stat-last");
+      lastEl.className = "stat-value";
+      if (s.lastLost) {
+        lastEl.innerHTML = `${smartTimeLabel(s.lastLost.ts)}<small>${ballEmoji(s.lastLost.colour)} ${escHtml(s.lastLost.brand)} ${escHtml(s.lastLost.model)}</small>`;
+      } else {
+        lastEl.textContent = "None yet";
+      }
+    } catch(e) {
+      document.getElementById("stat-today").textContent = "–";
+      document.getElementById("stat-last").textContent  = "–";
+    }
   }
 
-  /* ── Toast ── */
+  // ── Toast ─────────────────────────────────────────────────────
   function showToast(msg, type) {
     clearTimeout(toastTimer);
     const t = document.getElementById("toast");
@@ -912,7 +811,7 @@
     toastTimer    = setTimeout(() => t.classList.remove("show"), 3000);
   }
 
-  /* ── Utils ── */
+  // ── Utils ─────────────────────────────────────────────────────
   function escHtml(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
   function escAttr(s) { return String(s).replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
 </script>
