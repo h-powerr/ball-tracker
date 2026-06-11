@@ -133,6 +133,8 @@
       display: none; padding: 8px 10px 6px;
       border-bottom: 1px solid var(--border-light);
       flex-wrap: wrap; gap: 6px;
+      position: sticky; top: 0; z-index: 2;
+      background: var(--surface);
     }
     .bag-chips-wrap.visible { display: flex; }
     .dd-item {
@@ -303,7 +305,7 @@
     .brand-row:active { background:var(--dd-hover); }
     .brand-name { font-size:15px; font-weight:700; color:var(--ink); }
     .brand-meta { display:flex; align-items:center; gap:10px; }
-    .brand-count { background:var(--turf); color:#fff; font-size:12px; font-weight:700; padding:2px 8px; border-radius:20px; }
+    .brand-count { background: var(--border); color: var(--ink); font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
     .brand-chevron { color:var(--muted); font-size:14px; transition:transform 0.2s; }
     .brand-chevron.open { transform:rotate(180deg); }
     .brand-balls { display:none; padding:0 20px 10px; }
@@ -311,7 +313,7 @@
     .brand-ball-row { display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border-light); }
     .brand-ball-row:last-child { border-bottom:none; }
     .brand-ball-name { font-size:14px; color:var(--ink); display:flex; align-items:center; gap:6px; }
-    .brand-ball-qty { font-size:13px; font-weight:700; color:var(--muted); }
+    .brand-ball-qty { font-size:13px; font-weight:700; color:var(--ink); }
 
     .spin {
       display: inline-block; width: 16px; height: 16px;
@@ -657,8 +659,6 @@
     if (
       !wrap.contains(e.target) &&
       !dd.contains(e.target) &&
-      !e.target.closest("#in-play-card") &&
-      !e.target.closest("#second-card") &&
       !e.target.closest("#btn-play-action") &&
       !e.target.closest("#btn-second-action")
     ) { closeDd(); }
@@ -888,7 +888,6 @@
     selected = null;
     highlightedSlot = "play";
     fillCard("play", null);
-    updateSelectBallVisibility();
   }
 
   function promoteSecond() {
