@@ -341,34 +341,34 @@
       <div class="section-label">On Trolley</div>
       <div class="trolley-grid">
         <div class="slot-wrap">
-          <div class="in-play-card empty highlighted" id="in-play-card" onclick="highlightSlot('play')">
+          <div class="in-play-card empty highlighted" id="in-play-card" onclick="handleCardTap('play')">
             <div style="display:flex;flex-direction:column;width:100%;gap:6px">
               <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">In Play</div>
               <div style="display:flex;align-items:center;gap:10px">
                 <div class="ball-icon empty" id="in-play-icon">○</div>
-                <span class="empty-label" id="in-play-label">Tap Change</span>
+                <span class="empty-label" id="in-play-label">Tap to add</span>
               </div>
             </div>
           </div>
-          <button class="change-btn" onclick="openDdForSlot('play')">Change</button>
+          <button class="change-btn" id="btn-play-action" onclick="openDdForSlot('play')">Select</button>
         </div>
         <div class="slot-wrap">
-          <div class="in-play-card second empty" id="second-card" onclick="highlightSlot('second')">
+          <div class="in-play-card second empty" id="second-card" onclick="handleCardTap('second')">
             <div style="display:flex;flex-direction:column;width:100%;gap:6px">
               <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">Second Ball</div>
               <div style="display:flex;align-items:center;gap:10px">
                 <div class="ball-icon empty" id="second-icon">○</div>
-                <span class="empty-label" id="second-label">Tap Change</span>
+                <span class="empty-label" id="second-label">Tap to add</span>
               </div>
             </div>
           </div>
-          <button class="change-btn" onclick="openDdForSlot('second')">Change</button>
+          <button class="change-btn" id="btn-second-action" onclick="openDdForSlot('second')">Select</button>
         </div>
       </div>
     </div>
 
-    <!-- Select Ball — shown/hidden by JS -->
-    <div id="select-ball-wrap">
+    <!-- Select Ball — only visible while dropdown is open -->
+    <div id="select-ball-wrap" style="display:none">
       <div class="section-label" id="select-ball-label">Selecting In Play Ball</div>
       <div class="search-wrap" id="search-wrap">
         <span class="search-icon" id="search-icon">🔍</span>
@@ -390,7 +390,7 @@
       <button class="btn btn-lost" id="btn-lost" disabled onclick="markAsLost()">✕&nbsp; Mark In Play Ball as Lost</button>
       <div class="btn-grid">
         <button class="btn btn-outline" onclick="openRestore()">🕳️&nbsp; Lost Balls</button>
-        <button class="btn btn-pine"    onclick="openAddBall()">＋&nbsp; Add Ball</button>
+        <button class="btn btn-pine"    onclick="openAddBall()">＋&nbsp; Add to Stock</button>
       </div>
     </div>
 
@@ -654,9 +654,14 @@
   document.addEventListener("click", e => {
     const wrap = document.getElementById("search-wrap");
     const dd   = document.getElementById("dropdown");
-    if (!wrap.contains(e.target) && !dd.contains(e.target) && !e.target.closest("#in-play-card") && !e.target.closest("#second-card")) {
-      closeDd();
-    }
+    if (
+      !wrap.contains(e.target) &&
+      !dd.contains(e.target) &&
+      !e.target.closest("#in-play-card") &&
+      !e.target.closest("#second-card") &&
+      !e.target.closest("#btn-play-action") &&
+      !e.target.closest("#btn-second-action")
+    ) { closeDd(); }
   });
 
   // ── Load balls ────────────────────────────────────────────────
@@ -749,23 +754,14 @@
   function closeDd() {
     document.getElementById("dropdown").classList.remove("open");
     document.getElementById("search-input").value = "";
-    renderDd(getFilteredBalls(""));
-    updateSelectBallVisibility();
+    renderDd(getFilteredBallsForSlot(""));
+    // Hide select ball wrap when dropdown closes
+    document.getElementById("select-ball-wrap").style.display = "none";
   }
 
-  // ── Select ball visibility ────────────────────────────────────
   function updateSelectBallVisibility() {
-    const wrap = document.getElementById("select-ball-wrap");
-    // Hide when both slots are filled and dropdown is closed
-    if (selected && selectedSecond) {
-      wrap.style.display = "none";
-    } else if (!selected) {
-      wrap.style.display = "";
-      document.getElementById("select-ball-label").textContent = "Selecting In Play Ball";
-    } else if (!selectedSecond) {
-      wrap.style.display = "";
-      document.getElementById("select-ball-label").textContent = "Selecting Second Ball";
-    }
+    // Called after a ball is selected — hide the wrap
+    document.getElementById("select-ball-wrap").style.display = "none";
   }
 
   function highlightSlot(slot) {
@@ -803,6 +799,17 @@
     btn.disabled = !hasBall;
   }
 
+  function handleCardTap(slot) {
+    const hasBall = slot === "play" ? !!selected : !!selectedSecond;
+    if (!hasBall) {
+      // Empty card — open dropdown to add
+      openDdForSlot(slot);
+    } else {
+      // Filled card — just highlight
+      highlightSlot(slot);
+    }
+  }
+
   // ── Slot helpers ──────────────────────────────────────────────
   function openDdForSlot(slot) {
     selectingSlot = slot;
@@ -812,6 +819,7 @@
       : (slot === "play" ? "Selecting In Play Ball" : "Selecting Second Ball");
     document.getElementById("select-ball-label").textContent = label;
     document.getElementById("select-ball-wrap").style.display = "";
+    renderDd(getFilteredBallsForSlot(""));
     document.getElementById("search-input").focus();
     openDd();
   }
@@ -821,14 +829,19 @@
   }
 
   function getFilteredBallsForSlot(q) {
-    // Exclude the ball currently in the OTHER slot
     const otherBall = selectingSlot === "play" ? selectedSecond : selected;
     const otherKey  = ballKey(otherBall);
     return allBalls.filter(b => {
       if (activeBagFilters.size > 0 && !activeBagFilters.has(b.bag || "")) return false;
-      if (otherKey && ballKey(b) === otherKey) return false;
+      // Block if same ball is in the other slot AND only 1 in stock
+      if (otherKey && ballKey(b) === otherKey && b.count <= 1) return false;
       return (b.brand + " " + b.model).toLowerCase().includes(q);
     });
+  }
+
+  function updateSlotButtons() {
+    document.getElementById("btn-play-action").textContent   = selected       ? "Change" : "Select";
+    document.getElementById("btn-second-action").textContent = selectedSecond ? "Change" : "Select";
   }
 
   function fillCard(slot, ball, animate) {
@@ -850,32 +863,25 @@
       icon.className   = "ball-icon empty";
       icon.textContent = "○";
       const lbl = document.getElementById(labelId);
-      if (lbl) lbl.outerHTML = `<span class="empty-label" id="${labelId}">Tap Change</span>`;
+      if (lbl) lbl.outerHTML = `<span class="empty-label" id="${labelId}">Tap to add</span>`;
     }
     updateHighlight();
     updateMarkAsLostLabel();
+    updateSlotButtons();
   }
 
   // ── Select ball ───────────────────────────────────────────────
   function selectBall(ball) {
-    closeDd();
     document.getElementById("search-input").blur();
-
     if (selectingSlot === "play") {
       selected = ball;
       highlightedSlot = "play";
       fillCard("play", ball);
-      if (!selectedSecond) {
-        document.getElementById("select-ball-label").textContent = "Selecting Second Ball";
-        document.getElementById("select-ball-wrap").style.display = "";
-        selectingSlot = "second";
-        return;
-      }
     } else {
       selectedSecond = ball;
       fillCard("second", ball);
     }
-    updateSelectBallVisibility();
+    closeDd(); // hides select-ball-wrap
   }
 
   function clearSelection() {
@@ -889,16 +895,11 @@
     if (selectedSecond) {
       const ball = selectedSecond;
       selectedSecond = null;
-      // First fade out second card, then animate into play
       fillCard("second", null);
       setTimeout(() => {
         selected = ball;
         highlightedSlot = "play";
-        fillCard("play", ball, true); // animate=true
-        // Show select second ball
-        selectingSlot = "second";
-        document.getElementById("select-ball-label").textContent = "Selecting Second Ball";
-        document.getElementById("select-ball-wrap").style.display = "";
+        fillCard("play", ball, true);
       }, 200);
     } else {
       clearSelection();
@@ -916,13 +917,10 @@
     btn.disabled = true;
 
     if (highlightedSlot === "second") {
-      // Losing second ball — just clear it, in play stays
       selectedSecond = null;
       fillCard("second", null);
       highlightedSlot = "play";
-      updateSelectBallVisibility();
     } else {
-      // Losing in play — promote second ball
       promoteSecond();
     }
 
