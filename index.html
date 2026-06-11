@@ -12,7 +12,7 @@
     /* ── Light theme — Club Red ── */
     /* TO CHANGE COLOURS: edit --pine (header) and --turf (highlights) */
     :root {
-      --pine:        #111111;
+      --pine:        #1a1a1a;
       --turf:        #e3000f;
       --turf-light:  #fff0f0;
       --turf-border: #e3000f;
@@ -27,7 +27,7 @@
       --radius:      14px;
     }
     [data-theme="dark"] {
-      --pine:        #111111;
+      --pine:        #0d0d0d;
       --turf:        #ff4444;
       --turf-light:  #1a0a0a;
       --turf-border: #ff4444;
@@ -112,6 +112,12 @@
       border: 1px solid var(--border); max-height: 240px; overflow-y: auto; width: 100%;
     }
     .dropdown.open { display: block; }
+    .bag-chips-wrap {
+      display: none; padding: 8px 10px 6px;
+      border-bottom: 1px solid var(--border-light);
+      flex-wrap: wrap; gap: 6px;
+    }
+    .bag-chips-wrap.visible { display: flex; }
     .dd-item {
       padding: 12px 16px; font-size: 15px; cursor: pointer;
       display: flex; align-items: center; gap: 10px;
@@ -174,7 +180,6 @@
     .restore-arrow { color: var(--turf); font-size: 20px; font-weight: 700; flex-shrink: 0; }
     .sheet-empty { padding: 40px 20px; text-align: center; color: var(--muted); }
 
-    .stock-filters { display: flex; gap: 7px; padding: 12px 20px 0; flex-wrap: wrap; flex-shrink: 0; }
     .filter-chip {
       padding: 5px 12px; border-radius: 20px;
       border: 1.5px solid var(--border); background: var(--surface);
@@ -183,24 +188,16 @@
     }
     .filter-chip.active { border-color: var(--turf-border); background: var(--turf-light); color: var(--turf); }
     .filter-chip:active { transform: scale(0.95); }
-    .stock-item { padding: 14px 20px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; gap: 12px; }
-    .stock-item:last-child { border-bottom: none; }
-    .stock-emoji { font-size: 22px; flex-shrink: 0; }
-    .stock-info { flex: 1; min-width: 0; }
-    .stock-name { font-size: 15px; font-weight: 600; color: var(--ink); }
-    .stock-colour { font-size: 12px; color: var(--muted); margin-top: 1px; }
-    .stock-count { background: var(--turf); color: #fff; font-size: 13px; font-weight: 700; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; }
-    .stock-count.low { background: var(--hazard); }
 
-    .form-body { padding: 16px 20px 24px; display: flex; flex-direction: column; gap: 16px; }
-    .field-label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 7px; }
+    .form-body { padding: 10px 16px 16px; display: flex; flex-direction: column; gap: 11px; }
+    .field-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
 
     .colour-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
     .colour-btn {
       border: 2.5px solid var(--border); border-radius: 12px;
       background: var(--surface); cursor: pointer;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      padding: 10px 6px; gap: 4px; transition: all 0.15s; -webkit-appearance: none;
+      padding: 7px 6px; gap: 3px; transition: all 0.15s; -webkit-appearance: none;
     }
     .colour-btn span.emoji { font-size: 24px; line-height: 1; }
     .colour-btn span.label { font-size: 11px; font-weight: 600; color: var(--muted); }
@@ -208,12 +205,12 @@
     .colour-btn.selected span.label { color: var(--turf); }
     .colour-btn:active { transform: scale(0.95); }
 
-    .brand-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; max-height: 220px; overflow-y: auto; }
+    .brand-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-height: 160px; overflow-y: auto; }
     .brand-btn {
       border: 1.5px solid var(--border); border-radius: 10px;
       background: var(--surface); cursor: pointer; padding: 10px 6px;
       font-size: 13px; font-weight: 600; color: var(--ink); text-align: center;
-      transition: all 0.15s; -webkit-appearance: none; line-height: 1.2;
+      transition: all 0.15s; -webkit-appearance: none; line-height: 1.2; padding: 8px 6px;
     }
     .brand-btn.selected { border-color: var(--turf-border); background: var(--turf-light); color: var(--turf); }
     .brand-btn:active { transform: scale(0.95); }
@@ -276,8 +273,11 @@
       padding:6px 14px; border-radius:20px;
       background:var(--surface); border:1.5px solid var(--border);
       font-size:14px; font-weight:700; color:var(--ink);
+      cursor:pointer; transition: all 0.12s;
     }
     .colour-pill span { font-size:18px; }
+    .colour-pill.active { border-color:var(--turf-border); background:var(--turf-light); color:var(--turf); }
+    .colour-pill:active { transform: scale(0.95); }
     .brand-accordion { border-bottom:1px solid var(--border-light); }
     .brand-row {
       display:flex; align-items:center; justify-content:space-between;
@@ -319,6 +319,7 @@
   </header>
 
   <main>
+    <!-- In Play -->
     <div>
       <div class="section-label">In Play</div>
       <div class="in-play-card empty" id="in-play-card">
@@ -327,6 +328,7 @@
       </div>
     </div>
 
+    <!-- Select Ball -->
     <div>
       <div class="section-label">Select Ball</div>
       <div class="search-wrap" id="search-wrap">
@@ -337,13 +339,14 @@
           oninput="onSearch()" onfocus="openDd()">
       </div>
       <div class="dropdown" id="dropdown">
-        <div id="bag-chips" style="display:none;padding:8px 10px 6px;border-bottom:1px solid var(--border-light);display:flex;flex-wrap:wrap;gap:6px"></div>
+        <div class="bag-chips-wrap" id="bag-chips"></div>
         <div id="dd-list">
           <div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>
         </div>
       </div>
     </div>
 
+    <!-- Actions -->
     <div style="display:flex;flex-direction:column;gap:10px">
       <button class="btn btn-lost" id="btn-lost" disabled onclick="markAsLost()">⛳&nbsp; Mark as Lost</button>
       <div class="btn-grid">
@@ -352,6 +355,7 @@
       </div>
     </div>
 
+    <!-- Today's Round -->
     <div>
       <div class="section-label">Today's Round</div>
       <div class="stats-bar">
@@ -366,6 +370,7 @@
       </div>
     </div>
 
+    <!-- Stats -->
     <div>
       <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <span>Stats</span>
@@ -394,7 +399,7 @@
       </div>
     </div>
 
-    <!-- Stock Summary -->
+    <!-- Stock Summary button -->
     <button class="btn btn-outline" onclick="openStockSummary()">📦&nbsp; Ball Stock Summary</button>
 
   </main>
@@ -402,6 +407,7 @@
 
 <div class="overlay" id="overlay" onclick="closeAll()"></div>
 
+<!-- Restore sheet -->
 <div class="sheet" id="sheet-restore">
   <div class="sheet-handle"></div>
   <div class="sheet-header">
@@ -411,6 +417,7 @@
   <div class="sheet-body" id="body-restore"></div>
 </div>
 
+<!-- Add Ball sheet -->
 <div class="sheet" id="sheet-add">
   <div class="sheet-handle"></div>
   <div class="sheet-header">
@@ -422,35 +429,34 @@
       <div>
         <div class="field-label">Colour</div>
         <div class="colour-grid">
-          <button class="colour-btn selected" data-colour="White" onclick="selectColour(this)"><span class="emoji">⚪</span><span class="label">White</span></button>
-          <button class="colour-btn" data-colour="Yellow" onclick="selectColour(this)"><span class="emoji">🟡</span><span class="label">Yellow</span></button>
-          <button class="colour-btn" data-colour="Orange" onclick="selectColour(this)"><span class="emoji">🟠</span><span class="label">Orange</span></button>
-          <button class="colour-btn" data-colour="Red" onclick="selectColour(this)"><span class="emoji">🔴</span><span class="label">Red</span></button>
+          <button class="colour-btn selected" data-colour="White"  onclick="selectColour(this)"><span class="emoji">⚪</span><span class="label">White</span></button>
+          <button class="colour-btn"          data-colour="Yellow" onclick="selectColour(this)"><span class="emoji">🟡</span><span class="label">Yellow</span></button>
+          <button class="colour-btn"          data-colour="Orange" onclick="selectColour(this)"><span class="emoji">🟠</span><span class="label">Orange</span></button>
+          <button class="colour-btn"          data-colour="Red"    onclick="selectColour(this)"><span class="emoji">🔴</span><span class="label">Red</span></button>
         </div>
       </div>
       <div>
         <div class="field-label">Brand</div>
         <div class="brand-grid">
-          <button class="brand-btn" data-brand="Titleist"   onclick="selectBrand(this)">Titleist</button>
-          <button class="brand-btn" data-brand="Callaway"   onclick="selectBrand(this)">Callaway</button>
-          <button class="brand-btn" data-brand="TaylorMade" onclick="selectBrand(this)">TaylorMade</button>
-          <button class="brand-btn" data-brand="Srixon"     onclick="selectBrand(this)">Srixon</button>
-          <button class="brand-btn" data-brand="Wilson"     onclick="selectBrand(this)">Wilson</button>
+          <button class="brand-btn" data-brand="Titleist"    onclick="selectBrand(this)">Titleist</button>
+          <button class="brand-btn" data-brand="Callaway"    onclick="selectBrand(this)">Callaway</button>
+          <button class="brand-btn" data-brand="TaylorMade"  onclick="selectBrand(this)">TaylorMade</button>
+          <button class="brand-btn" data-brand="Srixon"      onclick="selectBrand(this)">Srixon</button>
+          <button class="brand-btn" data-brand="Wilson"      onclick="selectBrand(this)">Wilson</button>
           <button class="brand-btn" data-brand="Bridgestone" onclick="selectBrand(this)">Bridgestone</button>
-          <button class="brand-btn" data-brand="Vice"       onclick="selectBrand(this)">Vice</button>
-          <button class="brand-btn" data-brand="Volvik"     onclick="selectBrand(this)">Volvik</button>
-          <button class="brand-btn" data-brand="Pinnacle"   onclick="selectBrand(this)">Pinnacle</button>
-          <button class="brand-btn" data-brand="Top Flite"  onclick="selectBrand(this)">Top Flite</button>
-          <button class="brand-btn" data-brand="Slazenger"  onclick="selectBrand(this)">Slazenger</button>
-          <button class="brand-btn" data-brand="Dunlop"     onclick="selectBrand(this)">Dunlop</button>
-          <button class="brand-btn" data-brand="Nike"       onclick="selectBrand(this)">Nike</button>
-          <button class="brand-btn" data-brand="Kirkland"   onclick="selectBrand(this)">Kirkland</button>
-          <button class="brand-btn" data-brand="Maxfli"     onclick="selectBrand(this)">Maxfli</button>
-          <button class="brand-btn" data-brand="Noodle"     onclick="selectBrand(this)">Noodle</button>
-          <button class="brand-btn" data-brand="Inesis"     onclick="selectBrand(this)">Inesis</button>
+          <button class="brand-btn" data-brand="Vice"        onclick="selectBrand(this)">Vice</button>
+          <button class="brand-btn" data-brand="Volvik"      onclick="selectBrand(this)">Volvik</button>
+          <button class="brand-btn" data-brand="Pinnacle"    onclick="selectBrand(this)">Pinnacle</button>
+          <button class="brand-btn" data-brand="Top Flite"   onclick="selectBrand(this)">Top Flite</button>
+          <button class="brand-btn" data-brand="Slazenger"   onclick="selectBrand(this)">Slazenger</button>
+          <button class="brand-btn" data-brand="Dunlop"      onclick="selectBrand(this)">Dunlop</button>
+          <button class="brand-btn" data-brand="Nike"        onclick="selectBrand(this)">Nike</button>
+          <button class="brand-btn" data-brand="Kirkland"    onclick="selectBrand(this)">Kirkland</button>
+          <button class="brand-btn" data-brand="Maxfli"      onclick="selectBrand(this)">Maxfli</button>
+          <button class="brand-btn" data-brand="Noodle"      onclick="selectBrand(this)">Noodle</button>
+          <button class="brand-btn" data-brand="Inesis"      onclick="selectBrand(this)">Inesis</button>
         </div>
-        <button class="brand-btn" data-brand="Other" onclick="selectBrand(this)"
-          style="width:100%;margin-top:7px">Other…</button>
+        <button class="brand-btn" data-brand="Other" onclick="selectBrand(this)" style="width:100%;margin-top:7px">Other…</button>
         <input type="text" id="brand-other" class="field-input" placeholder="Enter brand name"
           autocomplete="off" autocorrect="off" spellcheck="false" style="display:none;margin-top:8px">
       </div>
@@ -478,8 +484,7 @@
           <button class="brand-btn" data-bag="Callaway Bag"       onclick="selectBag(this)">Callaway</button>
           <button class="brand-btn" data-bag="Good Bag"           onclick="selectBag(this)">Good</button>
           <button class="brand-btn" data-bag="Yellow Bag"         onclick="selectBag(this)">Yellow</button>
-          <button class="brand-btn" data-bag="The Rest"           onclick="selectBag(this)"
-            style="grid-column:span 2">Other</button>
+          <button class="brand-btn" data-bag="The Rest"           onclick="selectBag(this)" style="grid-column:span 2">Other</button>
         </div>
       </div>
       <button class="btn-submit" id="btn-add-submit" onclick="submitAddBall()">＋&nbsp; Add to Stock</button>
@@ -487,16 +492,7 @@
   </div>
 </div>
 
-<div class="sheet" id="sheet-stock">
-  <div class="sheet-handle"></div>
-  <div class="sheet-header">
-    <span class="sheet-title">Current Ball Stock</span>
-    <button class="sheet-close" onclick="closeAll()">✕</button>
-  </div>
-  <div class="stock-filters" id="stock-filters" style="display:none"></div>
-  <div class="sheet-body" id="body-stock"></div>
-</div>
-
+<!-- Stock Summary sheet -->
 <div class="sheet" id="sheet-summary">
   <div class="sheet-handle"></div>
   <div class="sheet-header">
@@ -504,7 +500,6 @@
     <button class="sheet-close" onclick="closeAll()">✕</button>
   </div>
   <div class="sheet-body" id="body-summary" style="padding-bottom:60px"></div>
-  <!-- Anchored sheets link -->
   <div style="position:absolute;bottom:0;left:0;right:0;padding:10px 16px;background:var(--surface);border-top:1px solid var(--border-light)">
     <a href="https://docs.google.com/spreadsheets/d/11M7cpapF5awI2P0XEI05RboJbZG2SleJTP0xYRj0x5g/edit?gid=415546596#gid=415546596"
       target="_blank"
@@ -517,7 +512,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  // ── CONFIG — your GAS deployment URL ──────────────────────────
+  // ── CONFIG ────────────────────────────────────────────────────
   const API = "https://script.google.com/macros/s/AKfycbxlitaUBLBWcr_4NH7I76QLKxy-LETQJ-m2ltLYZoX9I4fx_OcyNqoO4S3_XJZbjZoL/exec";
 
   // ── API helpers ───────────────────────────────────────────────
@@ -530,28 +525,23 @@
   }
 
   async function apiPost(action, body) {
-    const res = await fetch(API, {
-      method: "POST",
-      body: JSON.stringify({ action, ...body }),
-    });
+    const res = await fetch(API, { method: "POST", body: JSON.stringify({ action, ...body }) });
     return res.json();
   }
 
   // ── State ─────────────────────────────────────────────────────
-  let allBalls      = [];
-  let filteredBalls = [];
-  let selected      = null;
-  let ddOpen        = false;
-  let pending       = false;
+  let allBalls       = [];
+  let filteredBalls  = [];
+  let selected       = null;
+  let pending        = false;
   let toastTimer;
   let selectedColour = "White";
   let selectedBrand  = null;
   let selectedBag    = null;
   let addQty         = 1;
-  let activeBagFilters = new Set(); // persists for session
-  let bagNames         = [];        // loaded once from API
-  let stockData      = [];
-  let stockFilter    = null;
+  let activeBagFilters = new Set();
+  let bagNames         = [];
+  let summaryColourFilter = null; // active colour filter in stock summary
 
   // ── Dark mode ─────────────────────────────────────────────────
   (function() {
@@ -588,17 +578,28 @@
 
   // ── Smart time label ──────────────────────────────────────────
   function smartTimeLabel(ts) {
-    const d   = new Date(ts);
-    const now = new Date();
-    const isToday = d.getFullYear() === now.getFullYear() &&
-                    d.getMonth()    === now.getMonth()    &&
-                    d.getDate()     === now.getDate();
-    const hh = String(d.getHours()).padStart(2,"0");
-    const mm = String(d.getMinutes()).padStart(2,"0");
+    const d = new Date(ts), now = new Date();
+    const isToday = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+    const hh = String(d.getHours()).padStart(2,"0"), mm = String(d.getMinutes()).padStart(2,"0");
     if (isToday) return `${hh}:${mm}`;
-    const dd = String(d.getDate()).padStart(2,"0");
-    const mo = String(d.getMonth()+1).padStart(2,"0");
+    const dd = String(d.getDate()).padStart(2,"0"), mo = String(d.getMonth()+1).padStart(2,"0");
     return `${dd}/${mo} ${hh}:${mm}`;
+  }
+
+  // ── Premium list (used by Stock Summary only) ─────────────────
+  const PREMIUM = {
+    "titleist":    ["pro v1","pro v1x","avx","tour speed"],
+    "callaway":    ["chrome soft","chrome tour","chrome tour x"],
+    "taylormade":  ["tp5","tp5x","tour response"],
+    "srixon":      ["z-star","z-star xv","z-star diamond"],
+    "bridgestone": ["tour b x","tour b xs","tour b rxs","tour b rx"],
+    "vice":        ["pro","pro soft"],
+    "wilson":      ["staff model","staff model r"],
+  };
+
+  function isPremium(brand, model) {
+    const b = (brand || "").toLowerCase(), m = (model || "").toLowerCase();
+    return (PREMIUM[b] || []).some(pm => m.includes(pm));
   }
 
   // ── Boot ──────────────────────────────────────────────────────
@@ -623,19 +624,19 @@
     const input = document.getElementById("search-input");
     document.getElementById("dropdown").classList.remove("open");
     document.getElementById("dd-list").innerHTML = '<div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>';
-    input.disabled    = true;
+    input.disabled = true;
     input.placeholder = "Loading…";
     document.getElementById("search-icon").textContent = "⏳";
 
     try {
       const balls = await apiGet("getUniqueBalls");
       allBalls = balls;
-      const totalCount = balls.reduce((sum, b) => sum + b.count, 0);
-      input.disabled    = false;
-      input.placeholder = `Search ${totalCount} ball${totalCount !== 1 ? "s" : ""}…`;
+      const uniqueCount = balls.length;
+      input.disabled = false;
+      input.placeholder = `Search ${uniqueCount} ball${uniqueCount !== 1 ? "s" : ""}…`;
       document.getElementById("search-icon").textContent = "🔍";
       renderDd(getFilteredBalls(""));
-      showToast(`${balls.length} balls ready`, "ok");
+      showToast(`${uniqueCount} ball types ready`, "ok");
     } catch(err) {
       document.getElementById("dd-list").innerHTML = `<div class="dd-empty">⚠️ Failed to load</div>`;
       showToast("Failed to load balls", "err");
@@ -643,60 +644,18 @@
     }
   }
 
-  // ── Premium balls ─────────────────────────────────────────────
-  const PREMIUM = {
-    "titleist":    ["pro v1","pro v1x","avx","tour speed"],
-    "callaway":    ["chrome soft","chrome tour","chrome tour x"],
-    "taylormade":  ["tp5","tp5x","tour response"],
-    "srixon":      ["z-star","z-star xv","z-star diamond"],
-    "bridgestone": ["tour b x","tour b xs","tour b rxs","tour b rx"],
-    "vice":        ["pro","pro soft"],
-    "wilson":      ["staff model","staff model r"],
-  };
-
-  function isPremium(brand, model) {
-    const b = (brand || "").toLowerCase();
-    const m = (model || "").toLowerCase();
-    const models = PREMIUM[b] || [];
-    return models.some(pm => m.includes(pm));
-  }
-
-  let showPremium = false;
-
-  function togglePremium() {
-    showPremium = !showPremium;
-    const btn = document.getElementById("btn-premium-toggle");
-    btn.style.borderColor = showPremium ? "var(--turf-border)" : "var(--border)";
-    btn.style.color       = showPremium ? "var(--turf)"        : "var(--muted)";
-    btn.style.background  = showPremium ? "var(--turf-light)"  : "none";
-    const q = document.getElementById("search-input").value.toLowerCase();
-    const filtered = getFilteredBalls(q);
-    renderDd(filtered);
-    if (filtered.length) openDd();
-  }
-
-  function getFilteredBalls(q) {
-    return allBalls.filter(b => {
-      const matchesSearch = (b.brand + " " + b.model).toLowerCase().includes(q);
-      const ballIsPremium = isPremium(b.brand, b.model);
-      if (!showPremium && ballIsPremium) return false;
-      if (activeBagFilters.size > 0 && !activeBagFilters.has(b.bag || "")) return false;
-      return matchesSearch;
-    });
-  }
-
-  // ── Bag names ─────────────────────────────────────────────────
+  // ── Bag filter chips ──────────────────────────────────────────
   async function loadBagNames() {
     try {
       bagNames = await apiGet("getBagNames");
       renderBagChips();
-    } catch(e) { /* silent fail */ }
+    } catch(e) { /* silent */ }
   }
 
   function renderBagChips() {
     const wrap = document.getElementById("bag-chips");
-    if (!bagNames.length) { wrap.style.display = "none"; return; }
-    wrap.style.display = "flex";
+    if (!bagNames.length) { wrap.classList.remove("visible"); return; }
+    wrap.classList.add("visible");
     wrap.innerHTML = bagNames.map(b =>
       `<button class="filter-chip ${activeBagFilters.has(b) ? "active" : ""}"
         data-bag="${escAttr(b)}" onclick="toggleBagFilter('${escAttr(b)}', event)">${escHtml(b)}</button>`
@@ -705,50 +664,19 @@
 
   function toggleBagFilter(bag, event) {
     if (event) { event.preventDefault(); event.stopPropagation(); }
-    if (activeBagFilters.has(bag)) {
-      activeBagFilters.delete(bag);
-    } else {
-      activeBagFilters.add(bag);
-    }
+    if (activeBagFilters.has(bag)) { activeBagFilters.delete(bag); } else { activeBagFilters.add(bag); }
     renderBagChips();
     const q = document.getElementById("search-input").value.toLowerCase();
     renderDd(getFilteredBalls(q));
-    // Keep dropdown open
     document.getElementById("dropdown").classList.add("open");
   }
 
-  // ── Bag auto-suggest ──────────────────────────────────────────
-  function suggestBag(brand, model, colour) {
-    const b = (brand || "").toLowerCase();
-    const m = (model || "").toLowerCase();
-    const c = (colour || "").toLowerCase();
-
-    if (c === "yellow") return "Yellow Bag";
-    if (b === "titleist" && (m.includes("pro v1") || m === "pro v1x")) return "Pro V Bag";
-    if (b === "titleist") return "Other Titleist Bag";
-    if (b === "callaway") return "Callaway Bag";
-    return null; // no auto-suggest for Good Bag / The Rest / Cool Bag
-  }
-
-  function selectBag(btn) {
-    document.querySelectorAll("#bag-grid .brand-btn").forEach(b => b.classList.remove("selected"));
-    btn.classList.add("selected");
-    selectedBag = btn.dataset.bag;
-  }
-
-  function applyBagSuggestion() {
-    const brand  = selectedBrand === "Other"
-      ? document.getElementById("brand-other").value.trim()
-      : (selectedBrand || "");
-    const model  = document.getElementById("add-model").value.trim();
-    const colour = selectedColour;
-    const suggestion = suggestBag(brand, model, colour);
-    if (suggestion) {
-      document.querySelectorAll("#bag-grid .brand-btn").forEach(b => {
-        b.classList.toggle("selected", b.dataset.bag === suggestion);
-      });
-      selectedBag = suggestion;
-    }
+  // ── Filter logic ──────────────────────────────────────────────
+  function getFilteredBalls(q) {
+    return allBalls.filter(b => {
+      if (activeBagFilters.size > 0 && !activeBagFilters.has(b.bag || "")) return false;
+      return (b.brand + " " + b.model).toLowerCase().includes(q);
+    });
   }
 
   // ── Search ────────────────────────────────────────────────────
@@ -775,8 +703,8 @@
     if (item) { const i = parseInt(item.dataset.i); const b = filteredBalls[i]; if (b) selectBall(b); }
   });
 
-  function openDd()  { document.getElementById("dropdown").classList.add("open"); ddOpen = true; }
-  function closeDd() { document.getElementById("dropdown").classList.remove("open"); ddOpen = false; }
+  function openDd()  { document.getElementById("dropdown").classList.add("open"); }
+  function closeDd() { document.getElementById("dropdown").classList.remove("open"); }
 
   // ── Select ball ───────────────────────────────────────────────
   function selectBall(ball) {
@@ -785,10 +713,10 @@
     document.getElementById("search-input").value = "";
     renderDd(getFilteredBalls(""));
     document.getElementById("search-input").blur();
-    const card  = document.getElementById("in-play-card");
+    const card = document.getElementById("in-play-card");
     card.className = "in-play-card filled";
     const icon = card.querySelector(".ball-icon");
-    icon.className   = "ball-icon filled";
+    icon.className = "ball-icon filled";
     icon.textContent = ballEmoji(ball.colour);
     const label = document.getElementById("in-play-label");
     label.outerHTML = `<div id="in-play-label"><div class="ball-brand">${escHtml(ball.brand)}</div><div class="ball-model">${escHtml(ball.model)}</div></div>`;
@@ -813,15 +741,12 @@
     const { brand, model, colour } = selected;
     const btn = document.getElementById("btn-lost");
     btn.innerHTML = '<span class="spin"></span> Saving…';
-    btn.disabled  = true;
+    btn.disabled = true;
     clearSelection();
-
     try {
       const res = await apiPost("markAsLost", { brand, model, colour });
       showToast(res.success ? `${brand} ${model} — lost ⛳` : (res.message || "Something went wrong"), res.success ? "lost" : "err");
-    } catch(e) {
-      showToast("Failed to save — try again", "err");
-    }
+    } catch(e) { showToast("Failed to save — try again", "err"); }
     pending = false;
     btn.innerHTML = "⛳&nbsp; Mark as Lost";
     loadBalls(); loadStats();
@@ -834,7 +759,7 @@
   }
   function closeAll() {
     document.getElementById("overlay").classList.remove("open");
-    ["sheet-restore","sheet-add","sheet-stock","sheet-summary"].forEach(id => document.getElementById(id).classList.remove("open"));
+    ["sheet-restore","sheet-add","sheet-summary"].forEach(id => document.getElementById(id).classList.remove("open"));
   }
 
   // ── Restore ───────────────────────────────────────────────────
@@ -857,9 +782,7 @@
           <span class="restore-arrow">↩</span>
         </div>`
       ).join("");
-    } catch(e) {
-      body.innerHTML = '<div class="sheet-empty">⚠️ Failed to load</div>';
-    }
+    } catch(e) { body.innerHTML = '<div class="sheet-empty">⚠️ Failed to load</div>'; }
   }
 
   document.addEventListener("click", e => {
@@ -872,9 +795,7 @@
     try {
       await apiPost("restoreBall", { rowIndex });
       showToast(`${brand} ${model} restored ✓`, "ok");
-    } catch(e) {
-      showToast("Restore failed — try again", "err");
-    }
+    } catch(e) { showToast("Restore failed — try again", "err"); }
     loadBalls(); loadStats();
   }
 
@@ -921,28 +842,25 @@
     const hardcoded = knownModels[brand] || [];
     const seen = new Set(hardcoded.map(m => m.toLowerCase()));
     const stockModels = [];
-
     for (const b of allBalls) {
       if (b.brand.toLowerCase() === (brand || "").toLowerCase()) {
         const mLower = b.model.toLowerCase();
-        if (!seen.has(mLower)) {
-          seen.add(mLower);
-          stockModels.push(b.model);
-        }
+        if (!seen.has(mLower)) { seen.add(mLower); stockModels.push(b.model); }
       }
     }
-
     const allModels = [...hardcoded, ...stockModels];
     if (!allModels.length) { s.innerHTML = ""; return; }
-    s.innerHTML = allModels.map(m =>
-      `<button class="model-chip" onclick="pickModel('${escAttr(m)}')">${escHtml(m)}</button>`
-    ).join("");
+    s.innerHTML = allModels.map(m => `<button class="model-chip" onclick="pickModel('${escAttr(m)}')">${escHtml(m)}</button>`).join("");
   }
 
   function onModelInput() { document.querySelectorAll(".model-chip").forEach(c => c.classList.remove("selected")); }
 
   function pickModel(model) {
-    document.getElementById("add-model").value = model;
+    const input = document.getElementById("add-model");
+    input.value = model;
+    // Move cursor to end so editing appends rather than inserts at start
+    const len = model.length;
+    input.setSelectionRange(len, len);
     document.querySelectorAll(".model-chip").forEach(c => c.classList.toggle("selected", c.textContent === model));
     applyBagSuggestion();
   }
@@ -950,6 +868,41 @@
   function changeQty(delta) {
     addQty = Math.max(1, Math.min(36, addQty + delta));
     document.getElementById("qty-display").textContent = addQty;
+  }
+
+  function suggestBag(brand, model, colour) {
+    const b = (brand || "").toLowerCase();
+    const m = (model || "").toLowerCase();
+    const c = (colour || "").toLowerCase();
+
+    // Model takes highest priority
+    if (b === "titleist" && (m.includes("pro v1x") || m === "pro v1x")) return "Pro V Bag";
+    if (b === "titleist" && m.includes("pro v1")) return "Pro V Bag";
+
+    // Brand takes priority over colour
+    if (b === "titleist") return "Other Titleist Bag";
+    if (b === "callaway") return "Callaway Bag";
+
+    // Colour fallback
+    if (c === "yellow") return "Yellow Bag";
+
+    return null; // Good Bag / The Rest / Cool Bag are manual only
+  }
+
+  function selectBag(btn) {
+    document.querySelectorAll("#bag-grid .brand-btn").forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+    selectedBag = btn.dataset.bag;
+  }
+
+  function applyBagSuggestion() {
+    const brand = selectedBrand === "Other" ? document.getElementById("brand-other").value.trim() : (selectedBrand || "");
+    const model = document.getElementById("add-model").value.trim();
+    const suggestion = suggestBag(brand, model, selectedColour);
+    if (suggestion) {
+      document.querySelectorAll("#bag-grid .brand-btn").forEach(b => b.classList.toggle("selected", b.dataset.bag === suggestion));
+      selectedBag = suggestion;
+    }
   }
 
   function openAddBall() {
@@ -960,10 +913,10 @@
     document.querySelectorAll("#bag-grid .brand-btn").forEach(b => b.classList.remove("selected"));
     document.getElementById("brand-other").style.display = "none";
     document.getElementById("brand-other").value = "";
-    document.getElementById("add-model").value   = "";
+    document.getElementById("add-model").value = "";
     document.getElementById("model-suggestions").innerHTML = "";
-    document.getElementById("qty-display").textContent    = "1";
-    document.getElementById("btn-add-submit").disabled  = false;
+    document.getElementById("qty-display").textContent = "1";
+    document.getElementById("btn-add-submit").disabled = false;
     document.getElementById("btn-add-submit").innerHTML = "＋&nbsp; Add to Stock";
     openSheet("sheet-add");
   }
@@ -971,135 +924,66 @@
   async function submitAddBall() {
     let brand = selectedBrand;
     if (brand === "Other") brand = document.getElementById("brand-other").value.trim();
-    const model  = document.getElementById("add-model").value.trim();
-    const colour = selectedColour;
-    const qty    = addQty;
-    const bag    = selectedBag || "";
+    const model = document.getElementById("add-model").value.trim();
+    const colour = selectedColour, qty = addQty, bag = selectedBag || "";
     if (!brand) { showToast("Please select a brand", "err"); return; }
     if (!model)  { showToast("Please enter a model", "err"); return; }
-
     const btn = document.getElementById("btn-add-submit");
-    btn.innerHTML = '<span class="spin"></span> Saving…';
-    btn.disabled  = true;
-
+    btn.innerHTML = '<span class="spin"></span> Saving…'; btn.disabled = true;
     try {
-      for (let i = 0; i < qty; i++) {
-        await apiPost("addBall", { brand, model, colour, bag });
-      }
+      for (let i = 0; i < qty; i++) await apiPost("addBall", { brand, model, colour, bag });
       closeAll();
       showToast(`${ballEmoji(colour)} ${brand} ${model} ×${qty} added ✓`, "ok");
       loadBalls();
     } catch(e) {
-      btn.innerHTML = "＋&nbsp; Add to Stock";
-      btn.disabled  = false;
+      btn.innerHTML = "＋&nbsp; Add to Stock"; btn.disabled = false;
       showToast("Failed to add ball — try again", "err");
     }
   }
 
-  // ── Stock ─────────────────────────────────────────────────────
-  async function openStock() {
-    stockFilter = null;
-    const body    = document.getElementById("body-stock");
-    const filters = document.getElementById("stock-filters");
-    body.innerHTML    = '<div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>';
-    filters.style.display = "none"; filters.innerHTML = "";
-    openSheet("sheet-stock");
-
-    try {
-      const balls = await apiGet("getUniqueBalls");
-      balls.sort((a, b) => b.count - a.count || `${a.brand} ${a.model}`.localeCompare(`${b.brand} ${b.model}`));
-      stockData = balls;
-
-      const colours = [...new Set(balls.map(b => b.colour || "White"))];
-      const hasPremium = balls.some(b => isPremium(b.brand, b.model));
-      if (colours.length > 1 || hasPremium) {
-        filters.innerHTML =
-          `<button class="filter-chip active" data-colour="all" onclick="setStockFilter(this,'all')">All</button>` +
-          colours.map(c => `<button class="filter-chip" data-colour="${escAttr(c)}" onclick="setStockFilter(this,'${escAttr(c)}')">${ballEmoji(c)} ${escHtml(c)}</button>`).join("") +
-          (hasPremium ? `<button class="filter-chip" data-colour="premium" onclick="setStockFilter(this,'premium')">★ Premium</button>` : "");
-        filters.style.display = "flex";
-      }
-      renderStock(balls);
-    } catch(e) {
-      body.innerHTML = '<div class="sheet-empty">⚠️ Failed to load</div>';
-    }
-  }
-
-  function setStockFilter(btn, colour) {
-    document.querySelectorAll(".filter-chip").forEach(c => c.classList.remove("active"));
-    btn.classList.add("active");
-    stockFilter = colour === "all" ? null : colour;
-    let filtered;
-    if (stockFilter === "premium") {
-      filtered = stockData.filter(b => isPremium(b.brand, b.model));
-    } else if (stockFilter) {
-      filtered = stockData.filter(b => (b.colour || "White") === stockFilter);
-    } else {
-      filtered = stockData;
-    }
-    renderStock(filtered);
-  }
-
-  function renderStock(balls) {
-    const body = document.getElementById("body-stock");
-    if (!balls.length) { body.innerHTML = '<div class="sheet-empty">No balls in stock</div>'; return; }
-    body.innerHTML = balls.map(b =>
-      `<div class="stock-item">
-        <span class="stock-emoji">${ballEmoji(b.colour)}</span>
-        <div class="stock-info">
-          <div class="stock-name">${escHtml(b.brand)} ${escHtml(b.model)}</div>
-          <div class="stock-colour">${escHtml(b.colour || "White")}</div>
-        </div>
-        <span class="stock-count ${b.count === 1 ? "low" : ""}">${b.count}</span>
-      </div>`
-    ).join("");
-  }
-
   // ── Stock Summary ─────────────────────────────────────────────
+  let summaryAllBalls = [];
+
   async function openStockSummary() {
+    summaryColourFilter = null;
     const body = document.getElementById("body-summary");
     body.innerHTML = '<div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>';
     openSheet("sheet-summary");
-
     try {
-      const balls = await apiGet("getUniqueBalls");
-      renderSummary(balls);
-    } catch(e) {
-      body.innerHTML = '<div class="sheet-empty">⚠️ Failed to load</div>';
-    }
+      summaryAllBalls = await apiGet("getUniqueBalls");
+      renderSummary(summaryAllBalls);
+    } catch(e) { body.innerHTML = '<div class="sheet-empty">⚠️ Failed to load</div>'; }
   }
 
   function renderSummary(balls) {
     const body = document.getElementById("body-summary");
     if (!balls.length) { body.innerHTML = '<div class="sheet-empty">No balls in stock</div>'; return; }
 
-    // ── Colour pills (all balls including Cool Bag) ──
-    const totalBalls = balls.reduce((sum, b) => sum + b.count, 0);
+    // Colour pills — total + per colour, all balls
+    const totalBalls = summaryAllBalls.reduce((sum, b) => sum + b.count, 0);
     const colourTotals = {};
-    for (const b of balls) {
+    for (const b of summaryAllBalls) {
       const c = b.colour || "White";
       colourTotals[c] = (colourTotals[c] || 0) + b.count;
     }
     const colourOrder = ["White","Yellow","Orange","Red","Pink","Blue","Green","Purple","Black"];
     const pillsHtml =
-      `<div class="colour-pill" style="font-weight:800;border-color:var(--turf-border);color:var(--turf)">${totalBalls} Balls</div>` +
+      `<div class="colour-pill ${summaryColourFilter === null ? "active" : ""}" onclick="setSummaryFilter(null)">${totalBalls} Balls</div>` +
       colourOrder
         .filter(c => colourTotals[c])
-        .map(c => `<div class="colour-pill"><span>${ballEmoji(c)}</span>${colourTotals[c]}</div>`)
+        .map(c => `<div class="colour-pill ${summaryColourFilter === c ? "active" : ""}" onclick="setSummaryFilter('${escAttr(c)}')">${ballEmoji(c)} ${colourTotals[c]}</div>`)
         .join("");
 
-    // ── Brand accordion (all balls including Cool Bag) ──
+    // Brand accordion — uses filtered balls
     const brandMap = {};
     for (const b of balls) {
-      const br = b.brand;
-      if (!brandMap[br]) brandMap[br] = { total: 0, models: {} };
-      brandMap[br].total += b.count;
+      if (!brandMap[b.brand]) brandMap[b.brand] = { total: 0, models: {} };
+      brandMap[b.brand].total += b.count;
       const key = `${b.model}||${b.colour || "White"}`;
-      if (!brandMap[br].models[key]) brandMap[br].models[key] = { model: b.model, colour: b.colour || "White", count: 0 };
-      brandMap[br].models[key].count += b.count;
+      if (!brandMap[b.brand].models[key]) brandMap[b.brand].models[key] = { model: b.model, colour: b.colour || "White", count: 0 };
+      brandMap[b.brand].models[key].count += b.count;
     }
 
-    // Sort brands by total desc, filter out brands with only 1 ball
     const brands = Object.entries(brandMap)
       .filter(([, v]) => v.total > 1)
       .sort((a, b) => b[1].total - a[1].total);
@@ -1107,12 +991,8 @@
     const accordionHtml = brands.map(([brand, data], idx) => {
       const modelRows = Object.values(data.models)
         .sort((a, b) => b.count - a.count)
-        .map(m =>
-          `<div class="brand-ball-row">
-            <span class="brand-ball-name">${ballEmoji(m.colour)} ${escHtml(m.model)}</span>
-            <span class="brand-ball-qty">×${m.count}</span>
-          </div>`
-        ).join("");
+        .map(m => `<div class="brand-ball-row"><span class="brand-ball-name">${ballEmoji(m.colour)} ${escHtml(m.model)}</span><span class="brand-ball-qty">×${m.count}</span></div>`)
+        .join("");
       return `
         <div class="brand-accordion">
           <div class="brand-row" onclick="toggleAccordion(${idx})">
@@ -1127,16 +1007,24 @@
     }).join("");
 
     body.innerHTML = `
-      <div class="colour-pills">${pillsHtml || '<span style="color:var(--muted);font-size:14px">No colour data</span>'}</div>
-      <div>${accordionHtml}</div>`;
+      <div class="colour-pills">${pillsHtml}</div>
+      <div>${accordionHtml || '<div class="sheet-empty" style="padding:20px">No brands with multiple balls</div>'}</div>`;
+  }
+
+  function setSummaryFilter(colour) {
+    summaryColourFilter = colour;
+    const filtered = colour === null
+      ? summaryAllBalls
+      : summaryAllBalls.filter(b => (b.colour || "White") === colour);
+    renderSummary(filtered);
   }
 
   function toggleAccordion(idx) {
-    const balls  = document.getElementById(`accordion-${idx}`);
-    const chev   = document.getElementById(`chevron-${idx}`);
-    const isOpen = balls.classList.contains("open");
-    balls.classList.toggle("open", !isOpen);
-    chev.classList.toggle("open", !isOpen);
+    const b = document.getElementById(`accordion-${idx}`);
+    const c = document.getElementById(`chevron-${idx}`);
+    const open = b.classList.contains("open");
+    b.classList.toggle("open", !open);
+    c.classList.toggle("open", !open);
   }
 
   // ── Stats ─────────────────────────────────────────────────────
@@ -1150,43 +1038,30 @@
   }
 
   async function loadStats() {
-    document.getElementById("stat-today").className   = "stat-value loading";
-    document.getElementById("stat-today").textContent = "–";
-    document.getElementById("stat-last").className    = "stat-value loading";
-    document.getElementById("stat-last").textContent  = "–";
-    document.getElementById("stat-total-lost").className   = "stat-value loading";
-    document.getElementById("stat-total-lost").textContent = "–";
-    document.getElementById("stat-most-owned").className   = "stat-value loading";
-    document.getElementById("stat-most-owned").textContent = "–";
-    document.getElementById("stat-most-lost").className   = "stat-value loading";
-    document.getElementById("stat-most-lost").textContent = "–";
-
+    ["stat-today","stat-last","stat-total-lost","stat-most-owned","stat-most-lost"].forEach(id => {
+      const el = document.getElementById(id);
+      el.className = "stat-value loading"; el.textContent = "–";
+    });
     try {
       const s = await apiGet("getStats");
 
       const todayEl = document.getElementById("stat-today");
-      todayEl.className   = "stat-value";
-      todayEl.textContent = s.lostToday;
+      todayEl.className = "stat-value"; todayEl.textContent = s.lostToday;
 
       const lastEl = document.getElementById("stat-last");
       lastEl.className = "stat-value";
-      if (s.lastLost) {
-        lastEl.innerHTML = `${smartTimeLabel(s.lastLost.ts)}<small>${ballEmoji(s.lastLost.colour)} ${escHtml(s.lastLost.brand)} ${escHtml(s.lastLost.model)}</small>`;
-      } else {
-        lastEl.textContent = "None yet";
-      }
+      lastEl.innerHTML = s.lastLost
+        ? `${smartTimeLabel(s.lastLost.ts)}<small>${ballEmoji(s.lastLost.colour)} ${escHtml(s.lastLost.brand)} ${escHtml(s.lastLost.model)}</small>`
+        : "None yet";
 
       const totalEl = document.getElementById("stat-total-lost");
-      totalEl.className   = "stat-value";
-      totalEl.textContent = s.totalLost;
+      totalEl.className = "stat-value"; totalEl.textContent = s.totalLost;
 
-      const mostEl = document.getElementById("stat-most-owned");
-      mostEl.className = "stat-value";
-      if (s.mostOwned) {
-        mostEl.innerHTML = `${s.mostOwned.count}<small>${escHtml(s.mostOwned.brand)} ${escHtml(s.mostOwned.model)}</small>`;
-      } else {
-        mostEl.textContent = "None yet";
-      }
+      const mostOwnedEl = document.getElementById("stat-most-owned");
+      mostOwnedEl.className = "stat-value";
+      mostOwnedEl.innerHTML = s.mostOwned
+        ? `${s.mostOwned.count}<small>${escHtml(s.mostOwned.brand)} ${escHtml(s.mostOwned.model)}</small>`
+        : "None yet";
 
       const mostLostEl = document.getElementById("stat-most-lost");
       mostLostEl.className = "stat-value";
@@ -1197,7 +1072,6 @@
       } else {
         mostLostEl.innerHTML = `<span style="font-size:13px;font-weight:600;color:var(--muted)">Nothing specific</span>`;
       }
-
     } catch(e) {
       ["stat-today","stat-last","stat-total-lost","stat-most-owned","stat-most-lost"]
         .forEach(id => document.getElementById(id).textContent = "–");
@@ -1209,8 +1083,8 @@
     clearTimeout(toastTimer);
     const t = document.getElementById("toast");
     t.textContent = msg;
-    t.className   = `toast ${type} show`;
-    toastTimer    = setTimeout(() => t.classList.remove("show"), 3000);
+    t.className = `toast ${type} show`;
+    toastTimer = setTimeout(() => t.classList.remove("show"), 3000);
   }
 
   // ── Utils ─────────────────────────────────────────────────────
