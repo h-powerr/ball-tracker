@@ -606,6 +606,7 @@
     loadBalls();
     loadStats();
     loadBagNames();
+    loadLostBalls();
   });
 
   // Clicking the in-play card opens the select ball dropdown
@@ -754,7 +755,7 @@
     pending = false;
     btn.innerHTML = "✕&nbsp; Mark as Lost";
     cachedLostBalls = null;
-    loadBalls(); loadStats();
+    loadBalls(); loadStats(); loadLostBalls();
   }
 
   // ── Sheet helpers ─────────────────────────────────────────────
@@ -768,6 +769,12 @@
   }
 
   // ── Lost Balls ────────────────────────────────────────────────
+  async function loadLostBalls() {
+    try {
+      cachedLostBalls = await apiGet("getRecentLost", { n: 1000 });
+    } catch(e) { /* silent — will fetch on open if needed */ }
+  }
+
   function renderLostBalls(balls) {
     const body = document.getElementById("body-restore");
     if (!balls.length) { body.innerHTML = '<div class="sheet-empty">No balls lost yet</div>'; return; }
@@ -804,12 +811,12 @@
 
   async function restoreBall(rowIndex, brand, model) {
     closeAll();
-    cachedLostBalls = null; // invalidate cache
+    cachedLostBalls = null;
     try {
       await apiPost("restoreBall", { rowIndex });
       showToast(`${brand} ${model} restored ✓`, "ok");
     } catch(e) { showToast("Restore failed — try again", "err"); }
-    loadBalls(); loadStats();
+    loadBalls(); loadStats(); loadLostBalls();
   }
 
   // ── Add Ball ──────────────────────────────────────────────────
