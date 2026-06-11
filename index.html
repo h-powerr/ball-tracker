@@ -7,7 +7,6 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Ball Tracker</title>
-  <link rel="apple-touch-icon" href="icon.png">
   <style>
     /* ── Light theme — Club Red ── */
     /* TO CHANGE COLOURS: edit --pine (header) and --turf (highlights) */
@@ -282,7 +281,7 @@
 <div class="app">
   <header>
     <div class="header-left">
-      <img src="icon.png" style="width:28px;height:28px;border-radius:6px">
+      <span style="font-size:18px">⛳</span>
       <h1>Ball Tracker</h1>
     </div>
     <div class="header-right">
@@ -302,7 +301,13 @@
     </div>
 
     <div>
-      <div class="section-label">Select Ball</div>
+      <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span>Select Ball</span>
+        <button onclick="togglePremium()" id="btn-premium-toggle"
+          style="background:none;border:1.5px solid var(--border);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.08em;padding:3px 10px;border-radius:20px;transition:all 0.15s">
+          ★ Premium
+        </button>
+      </div>
       <div class="search-wrap" id="search-wrap">
         <span class="search-icon" id="search-icon">🔍</span>
         <input type="text" id="search-input" class="search-input"
@@ -311,7 +316,10 @@
           oninput="onSearch()" onfocus="openDd()">
       </div>
       <div class="dropdown" id="dropdown">
-        <div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>
+        <div id="bag-chips" style="display:none;padding:8px 10px 6px;border-bottom:1px solid var(--border-light);display:flex;flex-wrap:wrap;gap:6px"></div>
+        <div id="dd-list">
+          <div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>
+        </div>
       </div>
     </div>
 
@@ -410,8 +418,9 @@
           <button class="brand-btn" data-brand="Maxfli"     onclick="selectBrand(this)">Maxfli</button>
           <button class="brand-btn" data-brand="Noodle"     onclick="selectBrand(this)">Noodle</button>
           <button class="brand-btn" data-brand="Inesis"     onclick="selectBrand(this)">Inesis</button>
-          <button class="brand-btn" data-brand="Other"      onclick="selectBrand(this)">Other…</button>
         </div>
+        <button class="brand-btn" data-brand="Other" onclick="selectBrand(this)"
+          style="width:100%;margin-top:7px">Other…</button>
         <input type="text" id="brand-other" class="field-input" placeholder="Enter brand name"
           autocomplete="off" autocorrect="off" spellcheck="false" style="display:none;margin-top:8px">
       </div>
@@ -427,6 +436,18 @@
           <button class="qty-btn" onclick="changeQty(-1)">−</button>
           <span class="qty-val" id="qty-display">1</span>
           <button class="qty-btn" onclick="changeQty(1)">＋</button>
+        </div>
+      </div>
+      <div>
+        <div class="field-label">Bag</div>
+        <div class="brand-grid" id="bag-grid" style="max-height:none">
+          <button class="brand-btn" data-bag="Cool Bag"           onclick="selectBag(this)">Cool Bag</button>
+          <button class="brand-btn" data-bag="Pro V Bag"          onclick="selectBag(this)">Pro V Bag</button>
+          <button class="brand-btn" data-bag="Other Titleist Bag" onclick="selectBag(this)">Other Titleist</button>
+          <button class="brand-btn" data-bag="Callaway Bag"       onclick="selectBag(this)">Callaway Bag</button>
+          <button class="brand-btn" data-bag="Good Bag"           onclick="selectBag(this)">Good Bag</button>
+          <button class="brand-btn" data-bag="Yellow Bag"         onclick="selectBag(this)">Yellow Bag</button>
+          <button class="brand-btn" data-bag="The Rest"           onclick="selectBag(this)">The Rest</button>
         </div>
       </div>
       <button class="btn-submit" id="btn-add-submit" onclick="submitAddBall()">＋&nbsp; Add to Stock</button>
@@ -448,7 +469,7 @@
 
 <script>
   // ── CONFIG — your GAS deployment URL ──────────────────────────
-  const API = "https://script.google.com/macros/s/AKfycby48G9HQrb1RsqMioWVBkdz8ygZyxUNUYUQj1BAqMBCN2CqQBk86Njb2TS0SqQdZzj8/exec";
+  const API = "https://script.google.com/macros/s/AKfycbzZyVSULdYhP-57uKW2OLerNhch1QeNFWhrP8V1KhPpr0hO76ljUtNTTq8GRVXzIGx5/exec";
 
   // ── API helpers ───────────────────────────────────────────────
   async function apiGet(action, params) {
@@ -476,7 +497,10 @@
   let toastTimer;
   let selectedColour = "White";
   let selectedBrand  = null;
+  let selectedBag    = null;
   let addQty         = 1;
+  let activeBagFilters = new Set(); // persists for session
+  let bagNames         = [];        // loaded once from API
   let stockData      = [];
   let stockFilter    = null;
 
@@ -532,6 +556,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     loadBalls();
     loadStats();
+    loadBagNames();
     if (!statsVisible) {
       document.getElementById("stats-section").style.display = "none";
       document.getElementById("btn-stats-toggle").textContent = "Show";
@@ -550,6 +575,7 @@
     const input = document.getElementById("search-input");
     dd.innerHTML = '<div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>';
     dd.classList.remove("open");
+    document.getElementById("dd-list").innerHTML = '<div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>';
     input.disabled    = true;
     input.placeholder = "Loading…";
     document.getElementById("search-icon").textContent = "⏳";
@@ -561,7 +587,7 @@
       input.placeholder = `Search ${balls.length} ball${balls.length !== 1 ? "s" : ""}…`;
       document.getElementById("search-icon").textContent = "🔍";
       document.getElementById("ball-count-badge").textContent = `${balls.length} balls`;
-      renderDd(balls);
+      renderDd(getFilteredBalls(""));
       showToast(`${balls.length} balls ready`, "ok");
     } catch(err) {
       dd.innerHTML = `<div class="dd-empty">⚠️ Failed to load</div>`;
@@ -570,22 +596,127 @@
     }
   }
 
+  // ── Premium balls ─────────────────────────────────────────────
+  const PREMIUM = {
+    "titleist":    ["pro v1","pro v1x","avx","tour speed"],
+    "callaway":    ["chrome soft","chrome tour","chrome tour x"],
+    "taylormade":  ["tp5","tp5x","tour response"],
+    "srixon":      ["z-star","z-star xv","z-star diamond"],
+    "bridgestone": ["tour b x","tour b xs","tour b rxs","tour b rx"],
+    "vice":        ["pro","pro soft"],
+    "wilson":      ["staff model","staff model r"],
+    "titleist":    ["pro v1","pro v1x","avx"],
+  };
+
+  function isPremium(brand, model) {
+    const b = (brand || "").toLowerCase();
+    const m = (model || "").toLowerCase();
+    const models = PREMIUM[b] || [];
+    return models.some(pm => m.includes(pm));
+  }
+
+  let showPremium = false;
+
+  function togglePremium() {
+    showPremium = !showPremium;
+    const btn = document.getElementById("btn-premium-toggle");
+    btn.style.borderColor = showPremium ? "var(--turf-border)" : "var(--border)";
+    btn.style.color       = showPremium ? "var(--turf)"        : "var(--muted)";
+    btn.style.background  = showPremium ? "var(--turf-light)"  : "none";
+    const q = document.getElementById("search-input").value.toLowerCase();
+    const filtered = getFilteredBalls(q);
+    renderDd(filtered);
+    if (filtered.length) openDd();
+  }
+
+  function getFilteredBalls(q) {
+    return allBalls.filter(b => {
+      const matchesSearch = (b.brand + " " + b.model).toLowerCase().includes(q);
+      const ballIsPremium = isPremium(b.brand, b.model);
+      if (!showPremium && ballIsPremium) return false;
+      if (activeBagFilters.size > 0 && !activeBagFilters.has(b.bag || "")) return false;
+      return matchesSearch;
+    });
+  }
+
+  // ── Bag names ─────────────────────────────────────────────────
+  async function loadBagNames() {
+    try {
+      bagNames = await apiGet("getBagNames");
+      renderBagChips();
+    } catch(e) { /* silent fail */ }
+  }
+
+  function renderBagChips() {
+    const wrap = document.getElementById("bag-chips");
+    if (!bagNames.length) { wrap.style.display = "none"; return; }
+    wrap.style.display = "flex";
+    wrap.innerHTML = bagNames.map(b =>
+      `<button class="filter-chip ${activeBagFilters.has(b) ? "active" : ""}"
+        data-bag="${escAttr(b)}" onclick="toggleBagFilter('${escAttr(b)}')">${escHtml(b)}</button>`
+    ).join("");
+  }
+
+  function toggleBagFilter(bag) {
+    if (activeBagFilters.has(bag)) {
+      activeBagFilters.delete(bag);
+    } else {
+      activeBagFilters.add(bag);
+    }
+    renderBagChips();
+    const q = document.getElementById("search-input").value.toLowerCase();
+    renderDd(getFilteredBalls(q));
+  }
+
+  // ── Bag auto-suggest ──────────────────────────────────────────
+  function suggestBag(brand, model, colour) {
+    const b = (brand || "").toLowerCase();
+    const m = (model || "").toLowerCase();
+    const c = (colour || "").toLowerCase();
+
+    if (c === "yellow") return "Yellow Bag";
+    if (b === "titleist" && (m.includes("pro v1") || m === "pro v1x")) return "Pro V Bag";
+    if (b === "titleist") return "Other Titleist Bag";
+    if (b === "callaway") return "Callaway Bag";
+    return null; // no auto-suggest for Good Bag / The Rest / Cool Bag
+  }
+
+  function selectBag(btn) {
+    document.querySelectorAll("#bag-grid .brand-btn").forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+    selectedBag = btn.dataset.bag;
+  }
+
+  function applyBagSuggestion() {
+    const brand  = selectedBrand === "Other"
+      ? document.getElementById("brand-other").value.trim()
+      : (selectedBrand || "");
+    const model  = document.getElementById("add-model").value.trim();
+    const colour = selectedColour;
+    const suggestion = suggestBag(brand, model, colour);
+    if (suggestion) {
+      document.querySelectorAll("#bag-grid .brand-btn").forEach(b => {
+        b.classList.toggle("selected", b.dataset.bag === suggestion);
+      });
+      selectedBag = suggestion;
+    }
+  }
+
   // ── Search ────────────────────────────────────────────────────
   function onSearch() {
     const q = document.getElementById("search-input").value.toLowerCase();
-    filteredBalls = allBalls.filter(b => (b.brand + " " + b.model).toLowerCase().includes(q));
-    renderDd(filteredBalls);
+    renderDd(getFilteredBalls(q));
     openDd();
   }
 
   function renderDd(balls) {
     filteredBalls = balls;
-    const dd = document.getElementById("dropdown");
+    const dd = document.getElementById("dd-list");
     if (!balls.length) { dd.innerHTML = '<div class="dd-empty">No balls found</div>'; return; }
     dd.innerHTML = balls.map((b, i) =>
       `<div class="dd-item" data-i="${i}">
         <span style="font-size:20px;line-height:1;flex-shrink:0">${ballEmoji(b.colour)}</span>
-        <span><strong>${escHtml(b.brand)}</strong> ${escHtml(b.model)}${b.count > 1 ? ` <span style="color:var(--muted);font-size:13px;font-weight:400">×${b.count}</span>` : ""}</span>
+        <span><strong>${escHtml(b.brand)}</strong> ${escHtml(b.model)}${b.count > 1 ? ` <span style="color:var(--muted);font-size:13px;font-weight:400">×${b.count}</span>` : ""}${b.bag ? ` <span style="color:var(--muted);font-size:11px"> · ${escHtml(b.bag)}</span>` : ""}</span>
       </div>`
     ).join("");
   }
@@ -603,7 +734,7 @@
     selected = ball;
     closeDd();
     document.getElementById("search-input").value = "";
-    renderDd(allBalls);
+    renderDd(getFilteredBalls(""));
     document.getElementById("search-input").blur();
     const card  = document.getElementById("in-play-card");
     card.className = "in-play-card filled";
@@ -703,15 +834,21 @@
     document.querySelectorAll(".colour-btn").forEach(b => b.classList.remove("selected"));
     btn.classList.add("selected");
     selectedColour = btn.dataset.colour;
+    applyBagSuggestion();
   }
 
   function selectBrand(btn) {
-    document.querySelectorAll(".brand-btn").forEach(b => b.classList.remove("selected"));
+    document.querySelectorAll(".brand-btn:not(#bag-grid .brand-btn)").forEach(b => b.classList.remove("selected"));
     btn.classList.add("selected");
     selectedBrand = btn.dataset.brand;
     const other = document.getElementById("brand-other");
-    if (selectedBrand === "Other") { other.style.display = "block"; other.focus(); }
-    else { other.style.display = "none"; other.value = ""; updateModelSuggestions(selectedBrand); }
+    if (selectedBrand === "Other") {
+      other.style.display = "block"; other.focus();
+    } else {
+      other.style.display = "none"; other.value = "";
+      updateModelSuggestions(selectedBrand);
+      applyBagSuggestion();
+    }
   }
 
   const knownModels = {
@@ -731,8 +868,20 @@
 
   function updateModelSuggestions(brand) {
     const s = document.getElementById("model-suggestions");
-    const models = knownModels[brand] || [];
-    s.innerHTML = models.map(m => `<button class="model-chip" onclick="pickModel('${escAttr(m)}')">${escHtml(m)}</button>`).join("");
+    const hardcoded = knownModels[brand] || [];
+
+    // Pull models from current stock for this brand
+    const stockModels = allBalls
+      .filter(b => b.brand.toLowerCase() === (brand || "").toLowerCase())
+      .map(b => b.model)
+      .filter((m, i, arr) => arr.indexOf(m) === i) // dedupe
+      .filter(m => !hardcoded.some(h => h.toLowerCase() === m.toLowerCase())); // no duplicates
+
+    const allModels = [...hardcoded, ...stockModels];
+    if (!allModels.length) { s.innerHTML = ""; return; }
+    s.innerHTML = allModels.map(m =>
+      `<button class="model-chip" onclick="pickModel('${escAttr(m)}')">${escHtml(m)}</button>`
+    ).join("");
   }
 
   function onModelInput() { document.querySelectorAll(".model-chip").forEach(c => c.classList.remove("selected")); }
@@ -740,6 +889,7 @@
   function pickModel(model) {
     document.getElementById("add-model").value = model;
     document.querySelectorAll(".model-chip").forEach(c => c.classList.toggle("selected", c.textContent === model));
+    applyBagSuggestion();
   }
 
   function changeQty(delta) {
@@ -748,10 +898,11 @@
   }
 
   function openAddBall() {
-    selectedColour = "White"; selectedBrand = null; addQty = 1;
+    selectedColour = "White"; selectedBrand = null; addQty = 1; selectedBag = null;
     document.querySelectorAll(".colour-btn").forEach(b => b.classList.remove("selected"));
     document.querySelector('.colour-btn[data-colour="White"]').classList.add("selected");
-    document.querySelectorAll(".brand-btn").forEach(b => b.classList.remove("selected"));
+    document.querySelectorAll(".brand-btn:not(#bag-grid .brand-btn)").forEach(b => b.classList.remove("selected"));
+    document.querySelectorAll("#bag-grid .brand-btn").forEach(b => b.classList.remove("selected"));
     document.getElementById("brand-other").style.display = "none";
     document.getElementById("brand-other").value = "";
     document.getElementById("add-model").value   = "";
@@ -768,6 +919,7 @@
     const model  = document.getElementById("add-model").value.trim();
     const colour = selectedColour;
     const qty    = addQty;
+    const bag    = selectedBag || "";
     if (!brand) { showToast("Please select a brand", "err"); return; }
     if (!model)  { showToast("Please enter a model", "err"); return; }
 
@@ -777,7 +929,7 @@
 
     try {
       for (let i = 0; i < qty; i++) {
-        await apiPost("addBall", { brand, model, colour });
+        await apiPost("addBall", { brand, model, colour, bag });
       }
       closeAll();
       showToast(`${ballEmoji(colour)} ${brand} ${model} ×${qty} added ✓`, "ok");
@@ -804,10 +956,12 @@
       stockData = balls;
 
       const colours = [...new Set(balls.map(b => b.colour || "White"))];
-      if (colours.length > 1) {
+      const hasPremium = balls.some(b => isPremium(b.brand, b.model));
+      if (colours.length > 1 || hasPremium) {
         filters.innerHTML =
           `<button class="filter-chip active" data-colour="all" onclick="setStockFilter(this,'all')">All</button>` +
-          colours.map(c => `<button class="filter-chip" data-colour="${escAttr(c)}" onclick="setStockFilter(this,'${escAttr(c)}')">${ballEmoji(c)} ${escHtml(c)}</button>`).join("");
+          colours.map(c => `<button class="filter-chip" data-colour="${escAttr(c)}" onclick="setStockFilter(this,'${escAttr(c)}')">${ballEmoji(c)} ${escHtml(c)}</button>`).join("") +
+          (hasPremium ? `<button class="filter-chip" data-colour="premium" onclick="setStockFilter(this,'premium')">★ Premium</button>` : "");
         filters.style.display = "flex";
       }
       renderStock(balls);
@@ -820,7 +974,15 @@
     document.querySelectorAll(".filter-chip").forEach(c => c.classList.remove("active"));
     btn.classList.add("active");
     stockFilter = colour === "all" ? null : colour;
-    renderStock(stockFilter ? stockData.filter(b => (b.colour || "White") === stockFilter) : stockData);
+    let filtered;
+    if (stockFilter === "premium") {
+      filtered = stockData.filter(b => isPremium(b.brand, b.model));
+    } else if (stockFilter) {
+      filtered = stockData.filter(b => (b.colour || "White") === stockFilter);
+    } else {
+      filtered = stockData;
+    }
+    renderStock(filtered);
   }
 
   function renderStock(balls) {
