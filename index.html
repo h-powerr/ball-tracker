@@ -313,7 +313,6 @@
       <h1>Ball Tracker</h1>
     </div>
     <div class="header-right">
-      <span id="ball-count-badge" style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.75);background:rgba(255,255,255,0.12);border-radius:20px;padding:3px 10px;letter-spacing:0.02em">–</span>
       <button class="btn-icon" id="btn-dark" onclick="toggleDark()" title="Toggle dark mode">🌙</button>
       <button class="btn-icon" onclick="loadBalls(); loadStats();" title="Refresh">↺</button>
     </div>
@@ -631,10 +630,10 @@
     try {
       const balls = await apiGet("getUniqueBalls");
       allBalls = balls;
+      const totalCount = balls.reduce((sum, b) => sum + b.count, 0);
       input.disabled    = false;
-      input.placeholder = `Search ${balls.length} ball${balls.length !== 1 ? "s" : ""}…`;
+      input.placeholder = `Search ${totalCount} ball${totalCount !== 1 ? "s" : ""}…`;
       document.getElementById("search-icon").textContent = "🔍";
-      document.getElementById("ball-count-badge").textContent = `${balls.length} balls`;
       renderDd(getFilteredBalls(""));
       showToast(`${balls.length} balls ready`, "ok");
     } catch(err) {
@@ -894,6 +893,7 @@
     const other = document.getElementById("brand-other");
     if (selectedBrand === "Other") {
       other.style.display = "block"; other.focus();
+      document.getElementById("model-suggestions").innerHTML = "";
     } else {
       other.style.display = "none"; other.value = "";
       updateModelSuggestions(selectedBrand);
@@ -1073,18 +1073,20 @@
     const body = document.getElementById("body-summary");
     if (!balls.length) { body.innerHTML = '<div class="sheet-empty">No balls in stock</div>'; return; }
 
-    // ── Colour pills (exclude Cool Bag) ──
-    const nonCool = balls.filter(b => (b.bag || "") !== "Cool Bag");
+    // ── Colour pills (all balls including Cool Bag) ──
+    const totalBalls = balls.reduce((sum, b) => sum + b.count, 0);
     const colourTotals = {};
-    for (const b of nonCool) {
+    for (const b of balls) {
       const c = b.colour || "White";
       colourTotals[c] = (colourTotals[c] || 0) + b.count;
     }
     const colourOrder = ["White","Yellow","Orange","Red","Pink","Blue","Green","Purple","Black"];
-    const pillsHtml = colourOrder
-      .filter(c => colourTotals[c])
-      .map(c => `<div class="colour-pill"><span>${ballEmoji(c)}</span>${colourTotals[c]}</div>`)
-      .join("");
+    const pillsHtml =
+      `<div class="colour-pill" style="font-weight:800;border-color:var(--turf-border);color:var(--turf)">${totalBalls} Balls</div>` +
+      colourOrder
+        .filter(c => colourTotals[c])
+        .map(c => `<div class="colour-pill"><span>${ballEmoji(c)}</span>${colourTotals[c]}</div>`)
+        .join("");
 
     // ── Brand accordion (all balls including Cool Bag) ──
     const brandMap = {};
