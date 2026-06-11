@@ -41,22 +41,21 @@
       --dd-hover:    #1f1212;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    html { height: 100%; font-size: 16px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    html { height: 100%; font-size: 16px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; overflow: hidden; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg); color: var(--ink);
-      min-height: 100vh; min-height: -webkit-fill-available;
-      width: 100%; overflow-x: hidden;
+      height: 100%; overflow: hidden;
       transition: background 0.25s, color 0.25s;
     }
-    .app { width: 100%; min-height: 100vh; display: flex; flex-direction: column; }
+    .app { width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
 
     header {
       background: var(--pine); color: #fff;
       padding: 14px 16px;
       padding-top: max(14px, env(safe-area-inset-top));
       display: flex; align-items: center; justify-content: space-between;
-      position: sticky; top: 0; z-index: 10;
+      flex-shrink: 0; z-index: 10;
       transition: background 0.25s;
     }
     .header-left { display: flex; align-items: center; gap: 10px; }
@@ -69,7 +68,7 @@
     }
     .btn-icon:active { color: white; background: rgba(255,255,255,0.1); }
 
-    main { padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; width: 100%; flex: 1; }
+    main { padding: 14px 16px 32px; display: flex; flex-direction: column; gap: 14px; width: 100%; flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
     .section-label {
       font-size: 12px; font-weight: 700; text-transform: uppercase;
@@ -155,6 +154,7 @@
     .stat-card { flex: 1; background: var(--surface); border-radius: var(--radius); padding: 12px 14px; border: 1px solid var(--border); min-width: 0; transition: background 0.25s; }
     .stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 4px; }
     .stat-value { font-size: 18px; font-weight: 800; color: var(--ink); line-height: 1.1; }
+    .stat-value.date { font-size: 13px; font-weight: 700; }
     .stat-value.loading { color: var(--border); font-size: 14px; font-weight: 400; }
     .stat-value small { font-size: 11px; font-weight: 600; color: var(--muted); display: block; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -327,7 +327,7 @@
               <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">In Play</div>
               <div style="display:flex;align-items:center;gap:10px">
                 <div class="ball-icon empty" id="in-play-icon">○</div>
-                <span class="empty-label" id="in-play-label">Tap to select</span>
+                <span class="empty-label" id="in-play-label">Awaiting selection</span>
               </div>
             </div>
           </div>
@@ -339,7 +339,7 @@
               <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">Second Ball</div>
               <div style="display:flex;align-items:center;gap:10px">
                 <div class="ball-icon empty" id="second-icon">○</div>
-                <span class="empty-label" id="second-label">Tap to select</span>
+                <span class="empty-label" id="second-label">Awaiting selection</span>
               </div>
             </div>
           </div>
@@ -382,7 +382,7 @@
         </div>
         <div class="stat-card">
           <div class="stat-label">Worst Day</div>
-          <div class="stat-value loading" id="stat-worst-day">–</div>
+          <div class="stat-value date loading" id="stat-worst-day">–</div>
         </div>
       </div>
       <div class="stats-bar" style="margin-top:10px">
@@ -414,15 +414,20 @@
     <span class="sheet-title" id="select-ball-label">Select Ball</span>
     <button class="sheet-close" onclick="closeSelectSheet()">✕</button>
   </div>
-  <div class="sheet-body" style="display:flex;flex-direction:column;overflow:hidden">
-    <div class="bag-chips-wrap" id="bag-chips" style="flex-shrink:0"></div>
-    <div class="search-wrap" id="search-wrap" style="padding:10px 16px 6px;flex-shrink:0">
-      <span class="search-icon" id="search-icon">🔍</span>
-      <input type="text" id="search-input" class="search-input"
-        placeholder="Loading…" disabled
-        autocomplete="off" autocorrect="off" spellcheck="false"
-        oninput="onSearch()">
+  <div style="display:flex;flex-direction:column;height:100%;overflow:hidden">
+    <!-- Bag chips frozen at top -->
+    <div class="bag-chips-wrap" id="bag-chips" style="flex-shrink:0;border-bottom:1px solid var(--border-light)"></div>
+    <!-- Search bar -->
+    <div style="padding:10px 16px 8px;flex-shrink:0;background:var(--surface)">
+      <div style="position:relative">
+        <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:17px;color:var(--muted);pointer-events:none" id="search-icon">🔍</span>
+        <input type="text" id="search-input" class="search-input"
+          placeholder="Loading…" disabled
+          autocomplete="off" autocorrect="off" spellcheck="false"
+          oninput="onSearch()">
+      </div>
     </div>
+    <!-- Ball list scrollable -->
     <div id="dd-list" style="overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch">
       <div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>
     </div>
@@ -637,8 +642,7 @@
     const sheet = document.getElementById("sheet-select");
     if (!sheet.classList.contains("open")) return;
     if (
-      !document.getElementById("search-wrap").contains(e.target) &&
-      !document.getElementById("dd-list").contains(e.target) &&
+      !sheet.contains(e.target) &&
       !e.target.closest("#btn-play-action") &&
       !e.target.closest("#btn-second-action")
     ) closeSelectSheet();
@@ -653,9 +657,10 @@
     document.getElementById("search-icon").textContent = "⏳";
     try {
       allBalls = await apiGet("getUniqueBalls");
-      const total = allBalls.reduce((sum, b) => sum + b.count, 0);
+      const total  = allBalls.reduce((sum, b) => sum + b.count, 0);
+      const unique = allBalls.length;
       input.disabled = false;
-      input.placeholder = `Search ${total} ball${total !== 1 ? "s" : ""}…`;
+      input.placeholder = `Search ${unique} ball type${unique !== 1 ? "s" : ""}…`;
       document.getElementById("search-icon").textContent = "🔍";
       renderDd(getFilteredBallsForSlot(""));
       showToast(`${total} balls ready`, "ok");
@@ -763,7 +768,7 @@
       icon.className   = "ball-icon empty";
       icon.textContent = "○";
       const lbl = document.getElementById(labelId);
-      if (lbl) lbl.outerHTML = `<span class="empty-label" id="${labelId}">Tap to select</span>`;
+      if (lbl) lbl.outerHTML = `<span class="empty-label" id="${labelId}">Awaiting selection</span>`;
     }
     updateHighlight();
     updateMarkAsLostLabel();
@@ -791,7 +796,8 @@
       secondCard.classList.add("highlighted");
       playCard.classList.remove("highlighted");
     } else {
-      playCard.classList.toggle("highlighted", !!selected);
+      // In Play is always highlighted as the default active slot
+      playCard.classList.add("highlighted");
       secondCard.classList.remove("highlighted");
     }
   }
@@ -921,27 +927,34 @@
     const body = document.getElementById("body-history");
     if (!balls.length) { body.innerHTML = '<div class="sheet-empty">No balls lost yet</div>'; return; }
 
-    // Group by date — timeLabel from API is "10 Jun 2026, 15:36" format
+    // Group by date — timeLabel from API is "10 Jun 2026, 15:36"
     const groups = {};
+    const timeOf = {};
     for (const b of balls) {
-      // Strip time portion: take everything before the last comma+time, or before the space+time
       const label = b.timeLabel || "";
-      const dateKey = label.includes(",") ? label.split(",")[0].trim() : label.split(" ").slice(0,3).join(" ");
+      let dateKey, timeStr;
+      if (label.includes(",")) {
+        [dateKey, timeStr] = label.split(",").map(s => s.trim());
+      } else {
+        const parts = label.split(" ");
+        dateKey = parts.slice(0, 3).join(" ");
+        timeStr = parts[3] || "";
+      }
       if (!groups[dateKey]) groups[dateKey] = [];
-      groups[dateKey].push(b);
+      groups[dateKey].push({ ...b, timeStr });
     }
 
     body.innerHTML = Object.entries(groups).map(([date, dayBalls]) => `
       <div style="border-bottom:1px solid var(--border-light)">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px 6px">
-          <span style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">${escHtml(date)}</span>
+          <span style="font-size:14px;font-weight:700;color:var(--ink)">${escHtml(date)}</span>
           <span style="font-size:12px;font-weight:700;background:var(--border);color:var(--ink);padding:2px 8px;border-radius:20px">${dayBalls.length} lost</span>
         </div>
         ${dayBalls.map(b => `
           <div style="display:flex;align-items:center;gap:10px;padding:8px 20px">
             <span style="font-size:18px;flex-shrink:0">${ballEmoji(b.colour)}</span>
             <span style="font-size:14px;font-weight:600;color:var(--ink);flex:1">${escHtml(b.brand)} ${escHtml(b.model)}</span>
-            <span style="font-size:12px;color:var(--muted)">${escHtml(b.timeLabel)}</span>
+            <span style="font-size:12px;color:var(--muted);flex-shrink:0">${escHtml(b.timeStr)}</span>
           </div>`).join("")}
       </div>`
     ).join("");
@@ -1149,7 +1162,7 @@
         : "None yet");
       set("stat-total-lost", s.totalLost);
       setHtml("stat-worst-day", s.worstDay
-        ? `${s.worstDay.count}<small>${escHtml(s.worstDay.dateStr)}</small>`
+        ? `${escHtml(s.worstDay.dateStr)} <small>×${s.worstDay.count} balls</small>`
         : "None yet");
       setHtml("stat-most-lost", s.mostLost
         ? `${s.mostLost.count}<small>${escHtml(s.mostLost.brand)} ${escHtml(s.mostLost.model)}</small>`
