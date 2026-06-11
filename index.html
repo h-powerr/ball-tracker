@@ -301,13 +301,7 @@
     </div>
 
     <div>
-      <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <span>Select Ball</span>
-        <button onclick="togglePremium()" id="btn-premium-toggle"
-          style="background:none;border:1.5px solid var(--border);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.08em;padding:3px 10px;border-radius:20px;transition:all 0.15s">
-          ★ Premium
-        </button>
-      </div>
+      <div class="section-label">Select Ball</div>
       <div class="search-wrap" id="search-wrap">
         <span class="search-icon" id="search-icon">🔍</span>
         <input type="text" id="search-input" class="search-input"
@@ -571,10 +565,8 @@
 
   // ── Load balls ────────────────────────────────────────────────
   async function loadBalls() {
-    const dd    = document.getElementById("dropdown");
     const input = document.getElementById("search-input");
-    dd.innerHTML = '<div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>';
-    dd.classList.remove("open");
+    document.getElementById("dropdown").classList.remove("open");
     document.getElementById("dd-list").innerHTML = '<div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>';
     input.disabled    = true;
     input.placeholder = "Loading…";
@@ -590,7 +582,7 @@
       renderDd(getFilteredBalls(""));
       showToast(`${balls.length} balls ready`, "ok");
     } catch(err) {
-      dd.innerHTML = `<div class="dd-empty">⚠️ Failed to load</div>`;
+      document.getElementById("dd-list").innerHTML = `<div class="dd-empty">⚠️ Failed to load</div>`;
       showToast("Failed to load balls", "err");
       document.getElementById("search-icon").textContent = "🔍";
     }
@@ -605,7 +597,6 @@
     "bridgestone": ["tour b x","tour b xs","tour b rxs","tour b rx"],
     "vice":        ["pro","pro soft"],
     "wilson":      ["staff model","staff model r"],
-    "titleist":    ["pro v1","pro v1x","avx"],
   };
 
   function isPremium(brand, model) {
