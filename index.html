@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#111111" id="theme-color-meta">
-  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="color-scheme" content="light only">
+  <meta name="supported-color-schemes" content="light">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Ball Tracker</title>
   <link rel="apple-touch-icon" href="icon.png">
@@ -579,7 +580,7 @@
 
   // ── Dark mode ─────────────────────────────────────────────────
   (function() {
-    if (localStorage.getItem("balltracker-theme") === "dark") applyTheme("dark");
+    if (localStorage.getItem("balltracker-theme-v2") === "dark") applyTheme("dark");
   })();
   function applyTheme(theme) {
     document.documentElement.setAttribute("data-theme", theme);
@@ -589,7 +590,7 @@
   function toggleDark() {
     const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
     applyTheme(next);
-    localStorage.setItem("balltracker-theme", next);
+    localStorage.setItem("balltracker-theme-v2", next);
   }
 
   // ── Utilities ─────────────────────────────────────────────────
@@ -631,8 +632,10 @@
     loadLostBalls();
   });
 
-  // Close dropdown on outside click (not the action buttons themselves)
+  // Close select sheet on outside click only when it's open
   document.addEventListener("click", e => {
+    const sheet = document.getElementById("sheet-select");
+    if (!sheet.classList.contains("open")) return;
     if (
       !document.getElementById("search-wrap").contains(e.target) &&
       !document.getElementById("dd-list").contains(e.target) &&
@@ -644,7 +647,6 @@
   // ── Load balls ────────────────────────────────────────────────
   async function loadBalls() {
     const input = document.getElementById("search-input");
-    document.getElementById("dropdown").classList.remove("open");
     document.getElementById("dd-list").innerHTML = '<div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>';
     input.disabled = true;
     input.placeholder = "Loading…";
@@ -919,14 +921,14 @@
     const body = document.getElementById("body-history");
     if (!balls.length) { body.innerHTML = '<div class="sheet-empty">No balls lost yet</div>'; return; }
 
-    // Group by date
+    // Group by date — timeLabel from API is "10 Jun 2026, 15:36" format
     const groups = {};
     for (const b of balls) {
-      const date = b.timeLabel ? b.timeLabel.split(" ")[0] : "Unknown";
-      // Extract just the date part from timeLabel (e.g. "14 Jun 2026 15:36" → "14 Jun 2026")
-      const parts = b.timeLabel ? b.timeLabel.split(",")[0] : "Unknown date";
-      if (!groups[parts]) groups[parts] = [];
-      groups[parts].push(b);
+      // Strip time portion: take everything before the last comma+time, or before the space+time
+      const label = b.timeLabel || "";
+      const dateKey = label.includes(",") ? label.split(",")[0].trim() : label.split(" ").slice(0,3).join(" ");
+      if (!groups[dateKey]) groups[dateKey] = [];
+      groups[dateKey].push(b);
     }
 
     body.innerHTML = Object.entries(groups).map(([date, dayBalls]) => `
