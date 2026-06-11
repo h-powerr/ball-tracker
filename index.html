@@ -7,6 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Ball Tracker</title>
+  <link rel="apple-touch-icon" href="icon.png">
   <style>
     /* ── Light theme — Club Red ── */
     /* TO CHANGE COLOURS: edit --pine (header) and --turf (highlights) */
@@ -235,15 +236,15 @@
     .qty-row { display: flex; align-items: center; gap: 0; border: 1.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
     .qty-btn {
       background: var(--surface); border: none; color: var(--turf);
-      font-size: 22px; font-weight: 700; width: 56px; height: 52px;
+      font-size: 18px; font-weight: 700; width: 36px; height: 44px;
       cursor: pointer; transition: background 0.1s; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
     }
     .qty-btn:active { background: var(--turf-light); }
     .qty-val {
-      flex: 1; text-align: center; font-size: 22px; font-weight: 800;
+      flex: 1; text-align: center; font-size: 16px; font-weight: 800;
       color: var(--ink); border-left: 1.5px solid var(--border); border-right: 1.5px solid var(--border);
-      height: 52px; display: flex; align-items: center; justify-content: center;
+      height: 44px; display: flex; align-items: center; justify-content: center;
     }
 
     .btn-submit {
@@ -268,6 +269,33 @@
     .toast.lost { background: var(--hazard); }
     .toast.err  { background: #374151; }
 
+    /* ── Stock summary ── */
+    .colour-pills { display:flex; gap:8px; padding:14px 20px 10px; flex-wrap:wrap; flex-shrink:0; border-bottom:1px solid var(--border-light); }
+    .colour-pill {
+      display:flex; align-items:center; gap:6px;
+      padding:6px 14px; border-radius:20px;
+      background:var(--surface); border:1.5px solid var(--border);
+      font-size:14px; font-weight:700; color:var(--ink);
+    }
+    .colour-pill span { font-size:18px; }
+    .brand-accordion { border-bottom:1px solid var(--border-light); }
+    .brand-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 20px; cursor:pointer; transition:background 0.1s;
+    }
+    .brand-row:active { background:var(--dd-hover); }
+    .brand-name { font-size:15px; font-weight:700; color:var(--ink); }
+    .brand-meta { display:flex; align-items:center; gap:10px; }
+    .brand-count { background:var(--turf); color:#fff; font-size:12px; font-weight:700; padding:2px 8px; border-radius:20px; }
+    .brand-chevron { color:var(--muted); font-size:14px; transition:transform 0.2s; }
+    .brand-chevron.open { transform:rotate(180deg); }
+    .brand-balls { display:none; padding:0 20px 10px; }
+    .brand-balls.open { display:block; }
+    .brand-ball-row { display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border-light); }
+    .brand-ball-row:last-child { border-bottom:none; }
+    .brand-ball-name { font-size:14px; color:var(--ink); display:flex; align-items:center; gap:6px; }
+    .brand-ball-qty { font-size:13px; font-weight:700; color:var(--muted); }
+
     .spin {
       display: inline-block; width: 16px; height: 16px;
       border: 2px solid rgba(255,255,255,0.3); border-top-color: white;
@@ -281,7 +309,7 @@
 <div class="app">
   <header>
     <div class="header-left">
-      <span style="font-size:18px">⛳</span>
+      <img src="icon.png" style="width:28px;height:28px;border-radius:6px">
       <h1>Ball Tracker</h1>
     </div>
     <div class="header-right">
@@ -323,7 +351,6 @@
         <button class="btn btn-outline" onclick="openRestore()">↩&nbsp; Restore</button>
         <button class="btn btn-pine"    onclick="openAddBall()">＋&nbsp; Add Ball</button>
       </div>
-      <button class="btn btn-outline" onclick="openStock()">📦&nbsp; Current Ball Stock</button>
     </div>
 
     <div>
@@ -351,7 +378,7 @@
       <div id="stats-section">
         <div class="stats-bar">
           <div class="stat-card">
-            <div class="stat-label">Total Lost 😬</div>
+            <div class="stat-label">Total Lost</div>
             <div class="stat-value loading" id="stat-total-lost">–</div>
           </div>
           <div class="stat-card">
@@ -359,8 +386,18 @@
             <div class="stat-value loading" id="stat-most-owned">–</div>
           </div>
         </div>
+        <div class="stats-bar" style="margin-top:10px">
+          <div class="stat-card">
+            <div class="stat-label">Most Lost</div>
+            <div class="stat-value loading" id="stat-most-lost">–</div>
+          </div>
+        </div>
       </div>
     </div>
+
+    <!-- Stock Summary -->
+    <button class="btn btn-outline" onclick="openStockSummary()">📦&nbsp; Ball Stock Summary</button>
+
   </main>
 </div>
 
@@ -419,29 +456,31 @@
           autocomplete="off" autocorrect="off" spellcheck="false" style="display:none;margin-top:8px">
       </div>
       <div>
-        <div class="field-label">Model</div>
-        <input type="text" id="add-model" class="field-input" placeholder="e.g. Pro V1"
-          autocomplete="off" autocorrect="off" spellcheck="false" oninput="onModelInput()">
+        <div class="field-label">Model & Quantity</div>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <div style="flex:1;min-width:0">
+            <input type="text" id="add-model" class="field-input" placeholder="e.g. Pro V1"
+              autocomplete="off" autocorrect="off" spellcheck="false" oninput="onModelInput()">
+          </div>
+          <div class="qty-row" style="flex-shrink:0;width:110px">
+            <button class="qty-btn" onclick="changeQty(-1)">−</button>
+            <span class="qty-val" id="qty-display">1</span>
+            <button class="qty-btn" onclick="changeQty(1)">＋</button>
+          </div>
+        </div>
         <div class="model-suggestions" id="model-suggestions"></div>
       </div>
       <div>
-        <div class="field-label">Quantity</div>
-        <div class="qty-row">
-          <button class="qty-btn" onclick="changeQty(-1)">−</button>
-          <span class="qty-val" id="qty-display">1</span>
-          <button class="qty-btn" onclick="changeQty(1)">＋</button>
-        </div>
-      </div>
-      <div>
         <div class="field-label">Bag</div>
-        <div class="brand-grid" id="bag-grid" style="max-height:none">
-          <button class="brand-btn" data-bag="Cool Bag"           onclick="selectBag(this)">Cool Bag</button>
-          <button class="brand-btn" data-bag="Pro V Bag"          onclick="selectBag(this)">Pro V Bag</button>
-          <button class="brand-btn" data-bag="Other Titleist Bag" onclick="selectBag(this)">Other Titleist</button>
-          <button class="brand-btn" data-bag="Callaway Bag"       onclick="selectBag(this)">Callaway Bag</button>
-          <button class="brand-btn" data-bag="Good Bag"           onclick="selectBag(this)">Good Bag</button>
-          <button class="brand-btn" data-bag="Yellow Bag"         onclick="selectBag(this)">Yellow Bag</button>
-          <button class="brand-btn" data-bag="The Rest"           onclick="selectBag(this)">The Rest</button>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px" id="bag-grid">
+          <button class="brand-btn" data-bag="Cool Bag"           onclick="selectBag(this)">Cool</button>
+          <button class="brand-btn" data-bag="Pro V Bag"          onclick="selectBag(this)">Pro Vs</button>
+          <button class="brand-btn" data-bag="Other Titleist Bag" onclick="selectBag(this)">Titleist</button>
+          <button class="brand-btn" data-bag="Callaway Bag"       onclick="selectBag(this)">Callaway</button>
+          <button class="brand-btn" data-bag="Good Bag"           onclick="selectBag(this)">Good</button>
+          <button class="brand-btn" data-bag="Yellow Bag"         onclick="selectBag(this)">Yellow</button>
+          <button class="brand-btn" data-bag="The Rest"           onclick="selectBag(this)"
+            style="grid-column:span 2">Other</button>
         </div>
       </div>
       <button class="btn-submit" id="btn-add-submit" onclick="submitAddBall()">＋&nbsp; Add to Stock</button>
@@ -459,11 +498,28 @@
   <div class="sheet-body" id="body-stock"></div>
 </div>
 
+<div class="sheet" id="sheet-summary">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title">Ball Stock Summary</span>
+    <button class="sheet-close" onclick="closeAll()">✕</button>
+  </div>
+  <div class="sheet-body" id="body-summary" style="padding-bottom:60px"></div>
+  <!-- Anchored sheets link -->
+  <div style="position:absolute;bottom:0;left:0;right:0;padding:10px 16px;background:var(--surface);border-top:1px solid var(--border-light)">
+    <a href="https://docs.google.com/spreadsheets/d/11M7cpapF5awI2P0XEI05RboJbZG2SleJTP0xYRj0x5g/edit?gid=415546596#gid=415546596"
+      target="_blank"
+      style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:var(--radius);border:1px solid var(--border);color:var(--muted);font-size:13px;font-weight:600;text-decoration:none;background:var(--bg)">
+      <span style="font-size:15px">📊</span> Open Full Stock in Google Sheets
+    </a>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
   // ── CONFIG — your GAS deployment URL ──────────────────────────
-  const API = "https://script.google.com/macros/s/AKfycbzZyVSULdYhP-57uKW2OLerNhch1QeNFWhrP8V1KhPpr0hO76ljUtNTTq8GRVXzIGx5/exec";
+  const API = "https://script.google.com/macros/s/AKfycbxlitaUBLBWcr_4NH7I76QLKxy-LETQJ-m2ltLYZoX9I4fx_OcyNqoO4S3_XJZbjZoL/exec";
 
   // ── API helpers ───────────────────────────────────────────────
   async function apiGet(action, params) {
@@ -644,11 +700,12 @@
     wrap.style.display = "flex";
     wrap.innerHTML = bagNames.map(b =>
       `<button class="filter-chip ${activeBagFilters.has(b) ? "active" : ""}"
-        data-bag="${escAttr(b)}" onclick="toggleBagFilter('${escAttr(b)}')">${escHtml(b)}</button>`
+        data-bag="${escAttr(b)}" onclick="toggleBagFilter('${escAttr(b)}', event)">${escHtml(b)}</button>`
     ).join("");
   }
 
-  function toggleBagFilter(bag) {
+  function toggleBagFilter(bag, event) {
+    if (event) { event.preventDefault(); event.stopPropagation(); }
     if (activeBagFilters.has(bag)) {
       activeBagFilters.delete(bag);
     } else {
@@ -657,6 +714,8 @@
     renderBagChips();
     const q = document.getElementById("search-input").value.toLowerCase();
     renderDd(getFilteredBalls(q));
+    // Keep dropdown open
+    document.getElementById("dropdown").classList.add("open");
   }
 
   // ── Bag auto-suggest ──────────────────────────────────────────
@@ -776,7 +835,7 @@
   }
   function closeAll() {
     document.getElementById("overlay").classList.remove("open");
-    ["sheet-restore","sheet-add","sheet-stock"].forEach(id => document.getElementById(id).classList.remove("open"));
+    ["sheet-restore","sheet-add","sheet-stock","sheet-summary"].forEach(id => document.getElementById(id).classList.remove("open"));
   }
 
   // ── Restore ───────────────────────────────────────────────────
@@ -860,13 +919,18 @@
   function updateModelSuggestions(brand) {
     const s = document.getElementById("model-suggestions");
     const hardcoded = knownModels[brand] || [];
+    const seen = new Set(hardcoded.map(m => m.toLowerCase()));
+    const stockModels = [];
 
-    // Pull models from current stock for this brand
-    const stockModels = allBalls
-      .filter(b => b.brand.toLowerCase() === (brand || "").toLowerCase())
-      .map(b => b.model)
-      .filter((m, i, arr) => arr.indexOf(m) === i) // dedupe
-      .filter(m => !hardcoded.some(h => h.toLowerCase() === m.toLowerCase())); // no duplicates
+    for (const b of allBalls) {
+      if (b.brand.toLowerCase() === (brand || "").toLowerCase()) {
+        const mLower = b.model.toLowerCase();
+        if (!seen.has(mLower)) {
+          seen.add(mLower);
+          stockModels.push(b.model);
+        }
+      }
+    }
 
     const allModels = [...hardcoded, ...stockModels];
     if (!allModels.length) { s.innerHTML = ""; return; }
@@ -991,6 +1055,88 @@
     ).join("");
   }
 
+  // ── Stock Summary ─────────────────────────────────────────────
+  async function openStockSummary() {
+    const body = document.getElementById("body-summary");
+    body.innerHTML = '<div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>';
+    openSheet("sheet-summary");
+
+    try {
+      const balls = await apiGet("getUniqueBalls");
+      renderSummary(balls);
+    } catch(e) {
+      body.innerHTML = '<div class="sheet-empty">⚠️ Failed to load</div>';
+    }
+  }
+
+  function renderSummary(balls) {
+    const body = document.getElementById("body-summary");
+    if (!balls.length) { body.innerHTML = '<div class="sheet-empty">No balls in stock</div>'; return; }
+
+    // ── Colour pills (exclude Cool Bag) ──
+    const nonCool = balls.filter(b => (b.bag || "") !== "Cool Bag");
+    const colourTotals = {};
+    for (const b of nonCool) {
+      const c = b.colour || "White";
+      colourTotals[c] = (colourTotals[c] || 0) + b.count;
+    }
+    const colourOrder = ["White","Yellow","Orange","Red","Pink","Blue","Green","Purple","Black"];
+    const pillsHtml = colourOrder
+      .filter(c => colourTotals[c])
+      .map(c => `<div class="colour-pill"><span>${ballEmoji(c)}</span>${colourTotals[c]}</div>`)
+      .join("");
+
+    // ── Brand accordion (all balls including Cool Bag) ──
+    const brandMap = {};
+    for (const b of balls) {
+      const br = b.brand;
+      if (!brandMap[br]) brandMap[br] = { total: 0, models: {} };
+      brandMap[br].total += b.count;
+      const key = `${b.model}||${b.colour || "White"}`;
+      if (!brandMap[br].models[key]) brandMap[br].models[key] = { model: b.model, colour: b.colour || "White", count: 0 };
+      brandMap[br].models[key].count += b.count;
+    }
+
+    // Sort brands by total desc, filter out brands with only 1 ball
+    const brands = Object.entries(brandMap)
+      .filter(([, v]) => v.total > 1)
+      .sort((a, b) => b[1].total - a[1].total);
+
+    const accordionHtml = brands.map(([brand, data], idx) => {
+      const modelRows = Object.values(data.models)
+        .sort((a, b) => b.count - a.count)
+        .map(m =>
+          `<div class="brand-ball-row">
+            <span class="brand-ball-name">${ballEmoji(m.colour)} ${escHtml(m.model)}</span>
+            <span class="brand-ball-qty">×${m.count}</span>
+          </div>`
+        ).join("");
+      return `
+        <div class="brand-accordion">
+          <div class="brand-row" onclick="toggleAccordion(${idx})">
+            <span class="brand-name">${escHtml(brand)}</span>
+            <div class="brand-meta">
+              <span class="brand-count">${data.total}</span>
+              <span class="brand-chevron" id="chevron-${idx}">▾</span>
+            </div>
+          </div>
+          <div class="brand-balls" id="accordion-${idx}">${modelRows}</div>
+        </div>`;
+    }).join("");
+
+    body.innerHTML = `
+      <div class="colour-pills">${pillsHtml || '<span style="color:var(--muted);font-size:14px">No colour data</span>'}</div>
+      <div>${accordionHtml}</div>`;
+  }
+
+  function toggleAccordion(idx) {
+    const balls  = document.getElementById(`accordion-${idx}`);
+    const chev   = document.getElementById(`chevron-${idx}`);
+    const isOpen = balls.classList.contains("open");
+    balls.classList.toggle("open", !isOpen);
+    chev.classList.toggle("open", !isOpen);
+  }
+
   // ── Stats ─────────────────────────────────────────────────────
   let statsVisible = localStorage.getItem("balltracker-stats") !== "hidden";
 
@@ -1010,6 +1156,8 @@
     document.getElementById("stat-total-lost").textContent = "–";
     document.getElementById("stat-most-owned").className   = "stat-value loading";
     document.getElementById("stat-most-owned").textContent = "–";
+    document.getElementById("stat-most-lost").className   = "stat-value loading";
+    document.getElementById("stat-most-lost").textContent = "–";
 
     try {
       const s = await apiGet("getStats");
@@ -1037,11 +1185,20 @@
       } else {
         mostEl.textContent = "None yet";
       }
+
+      const mostLostEl = document.getElementById("stat-most-lost");
+      mostLostEl.className = "stat-value";
+      if (s.mostLost) {
+        mostLostEl.innerHTML = `${s.mostLost.count}<small>${escHtml(s.mostLost.brand)} ${escHtml(s.mostLost.model)}</small>`;
+      } else if (s.totalLost === 0) {
+        mostLostEl.textContent = "None yet";
+      } else {
+        mostLostEl.innerHTML = `<span style="font-size:13px;font-weight:600;color:var(--muted)">Nothing specific</span>`;
+      }
+
     } catch(e) {
-      document.getElementById("stat-today").textContent      = "–";
-      document.getElementById("stat-last").textContent       = "–";
-      document.getElementById("stat-total-lost").textContent = "–";
-      document.getElementById("stat-most-owned").textContent = "–";
+      ["stat-today","stat-last","stat-total-lost","stat-most-owned","stat-most-lost"]
+        .forEach(id => document.getElementById(id).textContent = "–");
     }
   }
 
