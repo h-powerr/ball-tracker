@@ -348,9 +348,9 @@
 
     <!-- Actions -->
     <div style="display:flex;flex-direction:column;gap:10px">
-      <button class="btn btn-lost" id="btn-lost" disabled onclick="markAsLost()">⛳&nbsp; Mark as Lost</button>
+      <button class="btn btn-lost" id="btn-lost" disabled onclick="markAsLost()">✕&nbsp; Mark as Lost</button>
       <div class="btn-grid">
-        <button class="btn btn-outline" onclick="openRestore()">↩&nbsp; Restore</button>
+        <button class="btn btn-outline" onclick="openRestore()">🕳️&nbsp; Lost Balls</button>
         <button class="btn btn-pine"    onclick="openAddBall()">＋&nbsp; Add Ball</button>
       </div>
     </div>
@@ -407,7 +407,7 @@
 <div class="sheet" id="sheet-restore">
   <div class="sheet-handle"></div>
   <div class="sheet-header">
-    <span class="sheet-title">Restore a Ball</span>
+    <span class="sheet-title">Lost Balls</span>
     <button class="sheet-close" onclick="closeAll()">✕</button>
   </div>
   <div class="sheet-body" id="body-restore"></div>
@@ -538,7 +538,9 @@
   let addQty         = 1;
   let activeBagFilters = new Set();
   let bagNames         = [];
-  let summaryColourFilter = null; // active colour filter in stock summary
+  let summaryAllBalls  = [];
+  let cachedLostBalls  = null; // null means needs a fresh API call
+  let summaryColourFilter = null;
 
   // ── Dark mode ─────────────────────────────────────────────────
   (function() {
@@ -747,10 +749,11 @@
     clearSelection();
     try {
       const res = await apiPost("markAsLost", { brand, model, colour });
-      showToast(res.success ? `${brand} ${model} — lost ⛳` : (res.message || "Something went wrong"), res.success ? "lost" : "err");
+      showToast(res.success ? `${brand} ${model} — lost` : (res.message || "Something went wrong"), res.success ? "lost" : "err");
     } catch(e) { showToast("Failed to save — try again", "err"); }
     pending = false;
-    btn.innerHTML = "⛳&nbsp; Mark as Lost";
+    btn.innerHTML = "✕&nbsp; Mark as Lost";
+    cachedLostBalls = null;
     loadBalls(); loadStats();
   }
 
@@ -764,36 +767,44 @@
     ["sheet-restore","sheet-add","sheet-summary"].forEach(id => document.getElementById(id).classList.remove("open"));
   }
 
-  // ── Restore ───────────────────────────────────────────────────
-  async function openRestore() {
+  // ── Lost Balls ────────────────────────────────────────────────
+  function renderLostBalls(balls) {
     const body = document.getElementById("body-restore");
-    body.innerHTML = '<div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>';
-    openSheet("sheet-restore");
-    try {
-      const balls = await apiGet("getRecentLost", { n: 10 });
-      if (!balls.length) { body.innerHTML = '<div class="sheet-empty">No recently lost balls</div>'; return; }
-      body.innerHTML = balls.map(b =>
-        `<div class="restore-item" data-row="${b.rowIndex}" data-brand="${escAttr(b.brand)}" data-model="${escAttr(b.model)}">
-          <div style="display:flex;align-items:center;gap:10px">
-            <span style="font-size:22px">${ballEmoji(b.colour)}</span>
-            <div>
-              <div class="restore-name">${escHtml(b.brand)} ${escHtml(b.model)}</div>
-              <div class="restore-time">Lost ${escHtml(b.timeLabel)}</div>
-            </div>
+    if (!balls.length) { body.innerHTML = '<div class="sheet-empty">No balls lost yet</div>'; return; }
+    body.innerHTML = balls.map(b =>
+      `<div class="restore-item">
+        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+          <span style="font-size:22px;flex-shrink:0">${ballEmoji(b.colour)}</span>
+          <div style="min-width:0">
+            <div class="restore-name">${escHtml(b.brand)} ${escHtml(b.model)}</div>
+            <div class="restore-time">Lost ${escHtml(b.timeLabel)}</div>
           </div>
-          <span class="restore-arrow">↩</span>
-        </div>`
-      ).join("");
-    } catch(e) { body.innerHTML = '<div class="sheet-empty">⚠️ Failed to load</div>'; }
+        </div>
+        <button onclick="restoreBall(${b.rowIndex},'${escAttr(b.brand)}','${escAttr(b.model)}')"
+          style="flex-shrink:0;padding:6px 14px;border-radius:20px;border:1.5px solid var(--turf-border);background:transparent;color:var(--turf);font-size:13px;font-weight:700;cursor:pointer">
+          Restore
+        </button>
+      </div>`
+    ).join("");
   }
 
-  document.addEventListener("click", e => {
-    const item = e.target.closest(".restore-item");
-    if (item) restoreBall(parseInt(item.dataset.row), item.dataset.brand, item.dataset.model);
-  });
+  async function openRestore() {
+    const body = document.getElementById("body-restore");
+    openSheet("sheet-restore");
+    if (cachedLostBalls !== null) {
+      renderLostBalls(cachedLostBalls);
+    } else {
+      body.innerHTML = '<div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>';
+      try {
+        cachedLostBalls = await apiGet("getRecentLost", { n: 1000 });
+        renderLostBalls(cachedLostBalls);
+      } catch(e) { body.innerHTML = '<div class="sheet-empty">⚠️ Failed to load</div>'; }
+    }
+  }
 
   async function restoreBall(rowIndex, brand, model) {
     closeAll();
+    cachedLostBalls = null; // invalidate cache
     try {
       await apiPost("restoreBall", { rowIndex });
       showToast(`${brand} ${model} restored ✓`, "ok");
@@ -944,8 +955,6 @@
   }
 
   // ── Stock Summary ─────────────────────────────────────────────
-  let summaryAllBalls = [];
-
   async function openStockSummary() {
     summaryColourFilter = null;
     const body = document.getElementById("body-summary");
