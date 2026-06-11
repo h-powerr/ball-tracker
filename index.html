@@ -636,7 +636,7 @@
       input.placeholder = `Search ${uniqueCount} ball${uniqueCount !== 1 ? "s" : ""}…`;
       document.getElementById("search-icon").textContent = "🔍";
       renderDd(getFilteredBalls(""));
-      showToast(`${totalCount} balls ready`, "ok");
+      showToast(`${uniqueCount} ball types ready`, "ok");
     } catch(err) {
       document.getElementById("dd-list").innerHTML = `<div class="dd-empty">⚠️ Failed to load</div>`;
       showToast("Failed to load balls", "err");
@@ -947,12 +947,20 @@
   async function openStockSummary() {
     summaryColourFilter = null;
     const body = document.getElementById("body-summary");
-    body.innerHTML = '<div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>';
     openSheet("sheet-summary");
-    try {
-      summaryAllBalls = await apiGet("getUniqueBalls");
+    if (allBalls.length) {
+      // Use cached data — no API call needed
+      summaryAllBalls = allBalls;
       renderSummary(summaryAllBalls);
-    } catch(e) { body.innerHTML = '<div class="sheet-empty">⚠️ Failed to load</div>'; }
+    } else {
+      // Fallback if balls haven't loaded yet
+      body.innerHTML = '<div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>';
+      try {
+        summaryAllBalls = await apiGet("getUniqueBalls");
+        allBalls = summaryAllBalls;
+        renderSummary(summaryAllBalls);
+      } catch(e) { body.innerHTML = '<div class="sheet-empty">⚠️ Failed to load</div>'; }
+    }
   }
 
   function renderSummary(balls) {
