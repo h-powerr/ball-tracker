@@ -366,7 +366,7 @@
           <div class="stat-value loading" id="stat-today">–</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Last Lost At</div>
+          <div class="stat-label">Latest Loss</div>
           <div class="stat-value loading" id="stat-last">–</div>
         </div>
       </div>
@@ -382,12 +382,12 @@
         </div>
         <div class="stat-card">
           <div class="stat-label">Worst Day</div>
-          <div class="stat-value date loading" id="stat-worst-day">–</div>
+          <div class="stat-value loading" id="stat-worst-day">–</div>
         </div>
       </div>
       <div class="stats-bar" style="margin-top:10px">
         <div class="stat-card">
-          <div class="stat-label">Most Lost</div>
+          <div class="stat-label">Most Lost Ball</div>
           <div class="stat-value loading" id="stat-most-lost">–</div>
         </div>
         <div class="stat-card">
@@ -549,7 +549,7 @@
 
 <script>
   // ── CONFIG ────────────────────────────────────────────────────
-  const API = "https://script.google.com/macros/s/AKfycbz4d1MbWIY1kC3SOs5Tg8pSwOH8bQn6RUHYZhjtuDdWRM4NCPs4s374GF8SU5EgCFpM/exec";
+  const API = "https://script.google.com/macros/s/AKfycbzuBQZ6j-8DszzjGMuWwyBcJNRPsLd3ySI3Y4CdjULoDZfNEGygTRTMuNYDCvQVpu93/exec";
 
   // ── API ───────────────────────────────────────────────────────
   async function apiGet(action, params) {
@@ -619,6 +619,23 @@
     return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")} ${hh}:${mm}`;
   }
   function ballKey(b) { return b ? `${b.brand}||${b.model}||${b.colour}||${b.bag||""}` : null; }
+  // Convert "10 Jun 2026, 15:36" → "Lost on 10 Jun 2026 @ 15:36"
+  function formatLostLabel(label) {
+    if (!label) return "Lost";
+    if (label.includes(",")) {
+      const [date, time] = label.split(",").map(s => s.trim());
+      return `Lost on ${escHtml(date)} @ ${escHtml(time)}`;
+    }
+    return `Lost ${escHtml(label)}`;
+  }
+    const months = {Jan:"01",Feb:"02",Mar:"03",Apr:"04",May:"05",Jun:"06",Jul:"07",Aug:"08",Sep:"09",Oct:"10",Nov:"11",Dec:"12"};
+    const parts = (str || "").split(" ");
+    if (parts.length < 3) return str;
+    const d = parts[0].padStart(2,"0");
+    const m = months[parts[1]] || parts[1];
+    const y = parts[2].slice(-2);
+    return `${d}/${m}/${y}`;
+  }
   function escHtml(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
   function escAttr(s) { return String(s).replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
   function showToast(msg, type) {
@@ -899,7 +916,7 @@
           <span style="font-size:22px;flex-shrink:0">${ballEmoji(b.colour)}</span>
           <div style="min-width:0">
             <div class="restore-name">${escHtml(b.brand)} ${escHtml(b.model)}</div>
-            <div class="restore-time">Lost ${escHtml(b.timeLabel)}</div>
+            <div class="restore-time">${formatLostLabel(b.timeLabel)}</div>
           </div>
         </div>
         <button onclick="restoreBall(${b.rowIndex},'${escAttr(b.brand)}','${escAttr(b.model)}')"
@@ -1162,11 +1179,15 @@
         : "None yet");
       set("stat-total-lost", s.totalLost);
       setHtml("stat-worst-day", s.worstDay
-        ? `${escHtml(s.worstDay.dateStr)} <small>×${s.worstDay.count} balls</small>`
+        ? `${escHtml(shortDate(s.worstDay.dateStr))} – ${s.worstDay.count} Balls`
         : "None yet");
-      setHtml("stat-most-lost", s.mostLost
+      setHtml("stat-most-lost", s.mostLost && !s.mostLost.tied
         ? `${s.mostLost.count}<small>${escHtml(s.mostLost.brand)} ${escHtml(s.mostLost.model)}</small>`
-        : s.totalLost ? `<span style="font-size:13px;font-weight:600;color:var(--muted)">Nothing specific</span>` : "None yet");
+        : s.mostLost && s.mostLost.tied
+          ? `<span style="font-size:12px;font-weight:600;color:var(--muted)">Tied – ${s.mostLost.tiedCount} balls each</span>`
+          : s.totalLost
+            ? `<span style="font-size:12px;font-weight:600;color:var(--muted)">Tied – multiple balls each</span>`
+            : "None yet");
       set("stat-avg", s.avgPerRound !== null ? s.avgPerRound : "None yet");
 
     } catch(e) {
