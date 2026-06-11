@@ -155,7 +155,7 @@
       transform: translateY(100%);
       background: var(--surface); border-radius: 20px 20px 0 0; z-index: 101;
       transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), background 0.25s;
-      max-height: 85vh; display: flex; flex-direction: column;
+      height: 85vh; display: flex; flex-direction: column;
       box-shadow: 0 -6px 30px rgba(0,0,0,0.2);
       padding-bottom: env(safe-area-inset-bottom);
     }
@@ -636,7 +636,7 @@
       input.placeholder = `Search ${uniqueCount} ball${uniqueCount !== 1 ? "s" : ""}…`;
       document.getElementById("search-icon").textContent = "🔍";
       renderDd(getFilteredBalls(""));
-      showToast(`${uniqueCount} ball types ready`, "ok");
+      showToast(`${totalCount} balls ready`, "ok");
     } catch(err) {
       document.getElementById("dd-list").innerHTML = `<div class="dd-empty">⚠️ Failed to load</div>`;
       showToast("Failed to load balls", "err");
@@ -985,7 +985,6 @@
     }
 
     const brands = Object.entries(brandMap)
-      .filter(([, v]) => v.total > 1)
       .sort((a, b) => b[1].total - a[1].total);
 
     const accordionHtml = brands.map(([brand, data], idx) => {
@@ -1008,7 +1007,7 @@
 
     body.innerHTML = `
       <div class="colour-pills">${pillsHtml}</div>
-      <div>${accordionHtml || '<div class="sheet-empty" style="padding:20px">No brands with multiple balls</div>'}</div>`;
+      <div>${accordionHtml || '<div class="sheet-empty" style="padding:20px">No balls in stock</div>'}</div>`;
   }
 
   function setSummaryFilter(colour) {
