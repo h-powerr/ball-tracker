@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#1a1a1a" id="theme-color-meta">
+  <meta name="theme-color" content="#111111" id="theme-color-meta">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Ball Tracker</title>
@@ -12,7 +12,7 @@
     /* ── Light theme — Club Red ── */
     /* TO CHANGE COLOURS: edit --pine (header) and --turf (highlights) */
     :root {
-      --pine:        #1a1a1a;
+      --pine:        #111111;
       --turf:        #e3000f;
       --turf-light:  #fff0f0;
       --turf-border: #e3000f;
@@ -27,7 +27,7 @@
       --radius:      14px;
     }
     [data-theme="dark"] {
-      --pine:        #0d0d0d;
+      --pine:        #111111;
       --turf:        #ff4444;
       --turf-light:  #1a0a0a;
       --turf-border: #ff4444;
@@ -372,22 +372,15 @@
 
     <!-- Stats -->
     <div>
-      <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <span>Stats</span>
-        <button onclick="toggleStats()" id="btn-stats-toggle"
-          style="background:none;border:none;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.08em;padding:0">
-          Hide
-        </button>
-      </div>
-      <div id="stats-section">
-        <div class="stats-bar">
+      <div class="section-label">Stats</div>
+      <div class="stats-bar">
           <div class="stat-card">
             <div class="stat-label">Total Lost</div>
             <div class="stat-value loading" id="stat-total-lost">–</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Most Owned</div>
-            <div class="stat-value loading" id="stat-most-owned">–</div>
+            <div class="stat-label">Worst Day</div>
+            <div class="stat-value loading" id="stat-worst-day">–</div>
           </div>
         </div>
         <div class="stats-bar" style="margin-top:10px">
@@ -395,8 +388,11 @@
             <div class="stat-label">Most Lost</div>
             <div class="stat-value loading" id="stat-most-lost">–</div>
           </div>
+          <div class="stat-card">
+            <div class="stat-label">Avg Per Round</div>
+            <div class="stat-value loading" id="stat-avg">–</div>
+          </div>
         </div>
-      </div>
     </div>
 
     <!-- Stock Summary button -->
@@ -455,6 +451,7 @@
           <button class="brand-btn" data-brand="Maxfli"      onclick="selectBrand(this)">Maxfli</button>
           <button class="brand-btn" data-brand="Noodle"      onclick="selectBrand(this)">Noodle</button>
           <button class="brand-btn" data-brand="Inesis"      onclick="selectBrand(this)">Inesis</button>
+          <button class="brand-btn" data-brand="FAZER"       onclick="selectBrand(this)">FAZER</button>
         </div>
         <button class="brand-btn" data-brand="Other" onclick="selectBrand(this)" style="width:100%;margin-top:7px">Other…</button>
         <input type="text" id="brand-other" class="field-input" placeholder="Enter brand name"
@@ -513,7 +510,7 @@
 
 <script>
   // ── CONFIG ────────────────────────────────────────────────────
-  const API = "https://script.google.com/macros/s/AKfycbxlitaUBLBWcr_4NH7I76QLKxy-LETQJ-m2ltLYZoX9I4fx_OcyNqoO4S3_XJZbjZoL/exec";
+  const API = "https://script.google.com/macros/s/AKfycbz4d1MbWIY1kC3SOs5Tg8pSwOH8bQn6RUHYZhjtuDdWRM4NCPs4s374GF8SU5EgCFpM/exec";
 
   // ── API helpers ───────────────────────────────────────────────
   async function apiGet(action, params) {
@@ -553,7 +550,7 @@
     document.documentElement.setAttribute("data-theme", theme);
     const btn = document.getElementById("btn-dark");
     if (btn) btn.textContent = theme === "dark" ? "☀️" : "🌙";
-    document.getElementById("theme-color-meta").content = theme === "dark" ? "#0d0d0d" : "#1a1a1a";
+    document.getElementById("theme-color-meta").content = theme === "dark" ? "#111111" : "#111111";
   }
 
   function toggleDark() {
@@ -607,16 +604,20 @@
     loadBalls();
     loadStats();
     loadBagNames();
-    if (!statsVisible) {
-      document.getElementById("stats-section").style.display = "none";
-      document.getElementById("btn-stats-toggle").textContent = "Show";
+  });
+
+  // Clicking the in-play card opens the select ball dropdown
+  document.addEventListener("click", e => {
+    if (e.target.closest("#in-play-card")) {
+      document.getElementById("search-input").focus();
+      openDd();
     }
   });
 
   document.addEventListener("click", e => {
     const wrap = document.getElementById("search-wrap");
     const dd   = document.getElementById("dropdown");
-    if (!wrap.contains(e.target) && !dd.contains(e.target)) closeDd();
+    if (!wrap.contains(e.target) && !dd.contains(e.target) && !e.target.closest("#in-play-card")) closeDd();
   });
 
   // ── Load balls ────────────────────────────────────────────────
@@ -632,11 +633,12 @@
       const balls = await apiGet("getUniqueBalls");
       allBalls = balls;
       const uniqueCount = balls.length;
+      const totalCount = balls.reduce((sum, b) => sum + b.count, 0);
       input.disabled = false;
       input.placeholder = `Search ${uniqueCount} ball${uniqueCount !== 1 ? "s" : ""}…`;
       document.getElementById("search-icon").textContent = "🔍";
       renderDd(getFilteredBalls(""));
-      showToast(`${uniqueCount} ball types ready`, "ok");
+      showToast(`${totalCount} balls ready`, "ok");
     } catch(err) {
       document.getElementById("dd-list").innerHTML = `<div class="dd-empty">⚠️ Failed to load</div>`;
       showToast("Failed to load balls", "err");
@@ -899,9 +901,10 @@
     const brand = selectedBrand === "Other" ? document.getElementById("brand-other").value.trim() : (selectedBrand || "");
     const model = document.getElementById("add-model").value.trim();
     const suggestion = suggestBag(brand, model, selectedColour);
-    // Always update — clear if no suggestion, highlight if there is one
-    document.querySelectorAll("#bag-grid .brand-btn").forEach(b => b.classList.toggle("selected", b.dataset.bag === suggestion));
-    selectedBag = suggestion;
+    if (suggestion) {
+      document.querySelectorAll("#bag-grid .brand-btn").forEach(b => b.classList.toggle("selected", b.dataset.bag === suggestion));
+      selectedBag = suggestion;
+    }
   }
 
   function openAddBall() {
@@ -1034,17 +1037,8 @@
   }
 
   // ── Stats ─────────────────────────────────────────────────────
-  let statsVisible = localStorage.getItem("balltracker-stats") !== "hidden";
-
-  function toggleStats() {
-    statsVisible = !statsVisible;
-    localStorage.setItem("balltracker-stats", statsVisible ? "visible" : "hidden");
-    document.getElementById("stats-section").style.display = statsVisible ? "" : "none";
-    document.getElementById("btn-stats-toggle").textContent = statsVisible ? "Hide" : "Show";
-  }
-
   async function loadStats() {
-    ["stat-today","stat-last","stat-total-lost","stat-most-owned","stat-most-lost"].forEach(id => {
+    ["stat-today","stat-last","stat-total-lost","stat-worst-day","stat-most-lost","stat-avg"].forEach(id => {
       const el = document.getElementById(id);
       el.className = "stat-value loading"; el.textContent = "–";
     });
@@ -1063,10 +1057,10 @@
       const totalEl = document.getElementById("stat-total-lost");
       totalEl.className = "stat-value"; totalEl.textContent = s.totalLost;
 
-      const mostOwnedEl = document.getElementById("stat-most-owned");
-      mostOwnedEl.className = "stat-value";
-      mostOwnedEl.innerHTML = s.mostOwned
-        ? `${s.mostOwned.count}<small>${escHtml(s.mostOwned.brand)} ${escHtml(s.mostOwned.model)}</small>`
+      const worstEl = document.getElementById("stat-worst-day");
+      worstEl.className = "stat-value";
+      worstEl.innerHTML = s.worstDay
+        ? `${s.worstDay.count}<small>${escHtml(s.worstDay.dateStr)}</small>`
         : "None yet";
 
       const mostLostEl = document.getElementById("stat-most-lost");
@@ -1078,8 +1072,13 @@
       } else {
         mostLostEl.innerHTML = `<span style="font-size:13px;font-weight:600;color:var(--muted)">Nothing specific</span>`;
       }
+
+      const avgEl = document.getElementById("stat-avg");
+      avgEl.className = "stat-value";
+      avgEl.textContent = s.avgPerRound !== null ? s.avgPerRound : "None yet";
+
     } catch(e) {
-      ["stat-today","stat-last","stat-total-lost","stat-most-owned","stat-most-lost"]
+      ["stat-today","stat-last","stat-total-lost","stat-worst-day","stat-most-lost","stat-avg"]
         .forEach(id => document.getElementById(id).textContent = "–");
     }
   }
