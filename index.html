@@ -899,10 +899,9 @@
     const brand = selectedBrand === "Other" ? document.getElementById("brand-other").value.trim() : (selectedBrand || "");
     const model = document.getElementById("add-model").value.trim();
     const suggestion = suggestBag(brand, model, selectedColour);
-    if (suggestion) {
-      document.querySelectorAll("#bag-grid .brand-btn").forEach(b => b.classList.toggle("selected", b.dataset.bag === suggestion));
-      selectedBag = suggestion;
-    }
+    // Always update — clear if no suggestion, highlight if there is one
+    document.querySelectorAll("#bag-grid .brand-btn").forEach(b => b.classList.toggle("selected", b.dataset.bag === suggestion));
+    selectedBag = suggestion;
   }
 
   function openAddBall() {
