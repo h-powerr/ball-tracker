@@ -77,12 +77,16 @@
     }
 
     .in-play-card {
-      padding: 14px 16px; border-radius: var(--radius);
-      display: flex; align-items: center; gap: 14px;
-      min-height: 76px; transition: all 0.2s ease; width: 100%;
+      padding: 12px 14px; border-radius: var(--radius);
+      display: flex; align-items: center; gap: 12px;
+      min-height: 68px; transition: all 0.2s ease; width: 100%;
+      cursor: pointer;
     }
     .in-play-card.empty  { border: 2px dashed var(--border); background: transparent; }
     .in-play-card.filled { background: var(--surface); border: 2px solid var(--turf-border); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    .in-play-card.second.empty  { border: 1.5px dashed var(--border); background: transparent; }
+    .in-play-card.second.filled { background: var(--surface); border: 1.5px solid var(--border); }
+    .trolley-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .ball-icon {
       width: 50px; height: 50px; border-radius: 50%; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;
@@ -319,18 +323,30 @@
   </header>
 
   <main>
-    <!-- In Play -->
+    <!-- On Trolley -->
     <div>
-      <div class="section-label">In Play</div>
-      <div class="in-play-card empty" id="in-play-card">
-        <div class="ball-icon empty">○</div>
-        <span class="empty-label" id="in-play-label">No ball selected</span>
+      <div class="section-label">On Trolley</div>
+      <div class="trolley-grid">
+        <div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:5px">In Play</div>
+          <div class="in-play-card empty" id="in-play-card" onclick="openDdForSlot('play')">
+            <div class="ball-icon empty" id="in-play-icon">○</div>
+            <span class="empty-label" id="in-play-label">Tap to select</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:5px">Second Ball</div>
+          <div class="in-play-card second empty" id="second-card" onclick="openDdForSlot('second')">
+            <div class="ball-icon empty" id="second-icon">○</div>
+            <span class="empty-label" id="second-label">Tap to select</span>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Select Ball -->
     <div>
-      <div class="section-label">Select Ball</div>
+      <div class="section-label" id="select-ball-label">Select Ball</div>
       <div class="search-wrap" id="search-wrap">
         <span class="search-icon" id="search-icon">🔍</span>
         <input type="text" id="search-input" class="search-input"
@@ -530,6 +546,8 @@
   let allBalls       = [];
   let filteredBalls  = [];
   let selected       = null;
+  let selectedSecond = null;
+  let selectingSlot  = "play"; // "play" or "second"
   let pending        = false;
   let toastTimer;
   let selectedColour = "White";
@@ -609,18 +627,10 @@
     loadLostBalls();
   });
 
-  // Clicking the in-play card opens the select ball dropdown
-  document.addEventListener("click", e => {
-    if (e.target.closest("#in-play-card")) {
-      document.getElementById("search-input").focus();
-      openDd();
-    }
-  });
-
   document.addEventListener("click", e => {
     const wrap = document.getElementById("search-wrap");
     const dd   = document.getElementById("dropdown");
-    if (!wrap.contains(e.target) && !dd.contains(e.target) && !e.target.closest("#in-play-card")) closeDd();
+    if (!wrap.contains(e.target) && !dd.contains(e.target) && !e.target.closest("#in-play-card") && !e.target.closest("#second-card")) closeDd();
   });
 
   // ── Load balls ────────────────────────────────────────────────
@@ -711,32 +721,72 @@
   function openDd()  { document.getElementById("dropdown").classList.add("open"); }
   function closeDd() { document.getElementById("dropdown").classList.remove("open"); }
 
+  // ── Slot helpers ──────────────────────────────────────────────
+  function openDdForSlot(slot) {
+    selectingSlot = slot;
+    document.getElementById("select-ball-label").textContent =
+      slot === "play" ? "Select In Play Ball" : "Select Second Ball";
+    document.getElementById("search-input").focus();
+    openDd();
+  }
+
+  function fillCard(slot, ball) {
+    const cardId  = slot === "play" ? "in-play-card"  : "second-card";
+    const iconId  = slot === "play" ? "in-play-icon"  : "second-icon";
+    const labelId = slot === "play" ? "in-play-label" : "second-label";
+    const card    = document.getElementById(cardId);
+    const icon    = document.getElementById(iconId);
+    const label   = document.getElementById(labelId);
+
+    if (ball) {
+      card.className  = slot === "play" ? "in-play-card filled" : "in-play-card second filled";
+      icon.className  = "ball-icon filled";
+      icon.textContent = ballEmoji(ball.colour);
+      label.outerHTML = `<div id="${labelId}"><div class="ball-brand" style="font-size:${slot === "play" ? "16px" : "14px"}">${escHtml(ball.brand)}</div><div class="ball-model" style="font-size:${slot === "play" ? "14px" : "12px"}">${escHtml(ball.model)}</div></div>`;
+    } else {
+      card.className  = slot === "play" ? "in-play-card empty" : "in-play-card second empty";
+      icon.className  = "ball-icon empty";
+      icon.textContent = "○";
+      const lbl = document.getElementById(labelId);
+      if (lbl) lbl.outerHTML = `<span class="empty-label" id="${labelId}">Tap to select</span>`;
+    }
+  }
+
   // ── Select ball ───────────────────────────────────────────────
   function selectBall(ball) {
-    selected = ball;
     closeDd();
     document.getElementById("search-input").value = "";
     renderDd(getFilteredBalls(""));
     document.getElementById("search-input").blur();
-    const card = document.getElementById("in-play-card");
-    card.className = "in-play-card filled";
-    const icon = card.querySelector(".ball-icon");
-    icon.className = "ball-icon filled";
-    icon.textContent = ballEmoji(ball.colour);
-    const label = document.getElementById("in-play-label");
-    label.outerHTML = `<div id="in-play-label"><div class="ball-brand">${escHtml(ball.brand)}</div><div class="ball-model">${escHtml(ball.model)}</div></div>`;
-    document.getElementById("btn-lost").disabled = false;
+    document.getElementById("select-ball-label").textContent = "Select Ball";
+
+    if (selectingSlot === "play") {
+      selected = ball;
+      fillCard("play", ball);
+      document.getElementById("btn-lost").disabled = false;
+    } else {
+      selectedSecond = ball;
+      fillCard("second", ball);
+    }
   }
 
   function clearSelection() {
     selected = null;
-    const card = document.getElementById("in-play-card");
-    card.className = "in-play-card empty";
-    const icon = card.querySelector(".ball-icon");
-    icon.className = "ball-icon empty"; icon.textContent = "○";
-    const lbl = document.getElementById("in-play-label");
-    if (lbl) lbl.outerHTML = `<span class="empty-label" id="in-play-label">No ball selected</span>`;
+    fillCard("play", null);
     document.getElementById("btn-lost").disabled = true;
+  }
+
+  function promoteSecond() {
+    // Slide second ball up to in play
+    if (selectedSecond) {
+      selected = selectedSecond;
+      selectedSecond = null;
+      fillCard("play", selected);
+      fillCard("second", null);
+      document.getElementById("btn-lost").disabled = false;
+    } else {
+      clearSelection();
+    }
   }
 
   // ── Mark as Lost ──────────────────────────────────────────────
@@ -747,7 +797,7 @@
     const btn = document.getElementById("btn-lost");
     btn.innerHTML = '<span class="spin"></span> Saving…';
     btn.disabled = true;
-    clearSelection();
+    promoteSecond(); // promote second ball to in play immediately
     try {
       const res = await apiPost("markAsLost", { brand, model, colour });
       showToast(res.success ? `${brand} ${model} — lost` : (res.message || "Something went wrong"), res.success ? "lost" : "err");
