@@ -807,8 +807,8 @@
       icon.innerHTML = ballWithLogo(ball.brand, ball.colour, 44);
       const lbl = document.getElementById(labelId);
       if (lbl) lbl.outerHTML = `<div id="${labelId}">
-        <div style="font-size:${isPlay?"16px":"14px"};font-weight:800;line-height:1.2;color:var(--ink)">${escHtml(ball.brand)}</div>
-        <div style="font-size:${isPlay?"13px":"12px"};font-weight:600;color:var(--turf)">${escHtml(ball.model)}</div>
+        <div style="font-size:${isPlay?"16px":"14px"};font-weight:800;line-height:1.2;color:var(--ink)">${escHtml(ball.model)}</div>
+        <div style="font-size:${isPlay?"13px":"12px"};font-weight:500;color:var(--muted)">${escHtml(ball.brand)}</div>
       </div>`;
     } else {
       card.className = `in-play-card${isPlay ? "" : " second"} empty`;
