@@ -90,11 +90,13 @@
     .in-play-card.second.filled { background: var(--surface); border: 2px solid var(--border); }
     .in-play-card.second.highlighted { border: 2px solid var(--turf-border); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
     .ball-icon {
-      width: 50px; height: 50px; border-radius: 50%; flex-shrink: 0;
+      width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;
+      position: relative; overflow: hidden;
     }
     .ball-icon.empty  { border: 2px dashed var(--border); color: var(--border); font-size: 22px; }
-    .ball-icon.filled { font-size: 36px; }
+    .ball-icon.filled { font-size: 36px; border: 1.5px solid var(--border); }
+    .ball-icon img { width: 34px; height: 34px; object-fit: contain; position: absolute; }
     .empty-label { color: var(--muted); font-size: 15px; opacity: 0.6; }
     .change-btn {
       width: 100%; padding: 9px; border-radius: 10px;
@@ -782,8 +784,13 @@
     if (ball) {
       card.className = `in-play-card${isPlay ? "" : " second"} filled`;
       if (animate) card.classList.add("promote-animate");
-      icon.className   = "ball-icon filled";
-      icon.textContent = ballEmoji(ball.colour);
+      icon.className = "ball-icon filled";
+      // Colour emoji as background, logo overlaid on top
+      const logoName = ball.brand.replace(/\s+/g, "");
+      icon.innerHTML = `<span style="font-size:36px;line-height:1">${ballEmoji(ball.colour)}</span>
+        <img src="logos/${logoName}.png"
+          style="width:34px;height:34px;object-fit:contain;position:absolute;filter:${ball.colour.toLowerCase()==='white'?'invert(1) brightness(0)':'invert(1)'}"
+          onerror="this.style.display='none'">`;
       const lbl = document.getElementById(labelId);
       if (lbl) lbl.outerHTML = `<div id="${labelId}">
         <div style="font-size:${isPlay?"16px":"14px"};font-weight:800;line-height:1.2;color:var(--ink)">${escHtml(ball.brand)}</div>
