@@ -88,6 +88,7 @@
     .in-play-card.highlighted { border: 2px solid var(--turf-border); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
     .in-play-card.second.empty  { border: 2px dashed var(--border); }
     .in-play-card.second.filled { background: var(--surface); border: 2px solid var(--border); }
+    .in-play-card.second.highlighted { border: 2px solid var(--turf-border); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
     .ball-icon {
       width: 50px; height: 50px; border-radius: 50%; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;
@@ -549,7 +550,7 @@
 
 <script>
   // ── CONFIG ────────────────────────────────────────────────────
-  const API = "https://script.google.com/macros/s/AKfycbzuBQZ6j-8DszzjGMuWwyBcJNRPsLd3ySI3Y4CdjULoDZfNEGygTRTMuNYDCvQVpu93/exec";
+  const API = "https://script.google.com/macros/s/AKfycbz4d1MbWIY1kC3SOs5Tg8pSwOH8bQn6RUHYZhjtuDdWRM4NCPs4s374GF8SU5EgCFpM/exec";
 
   // ── API ───────────────────────────────────────────────────────
   async function apiGet(action, params) {
@@ -621,30 +622,23 @@
   function ballKey(b) { return b ? `${b.brand}||${b.model}||${b.colour}||${b.bag||""}` : null; }
   // Convert "10 Jun 2026, 15:36" → "Lost on 10 Jun 2026 @ 15:36"
   function formatLostLabel(label) {
-  if (!label) return "Lost";
-  if (label.includes(",")) {
-    const [date, time] = label.split(",").map(s => s.trim());
-    return `Lost on ${escHtml(date)} @ ${escHtml(time)}`;
+    if (!label) return "Lost";
+    if (label.includes(",")) {
+      const [date, time] = label.split(",").map(s => s.trim());
+      return `Lost on ${escHtml(date)} @ ${escHtml(time)}`;
+    }
+    return `Lost ${escHtml(label)}`;
   }
-  return `Lost ${escHtml(label)}`;
-}
-
-function shortDate(str) {
-  const months = {
-    Jan:"01", Feb:"02", Mar:"03", Apr:"04",
-    May:"05", Jun:"06", Jul:"07", Aug:"08",
-    Sep:"09", Oct:"10", Nov:"11", Dec:"12"
-  };
-
-  const parts = (str || "").split(" ");
-  if (parts.length < 3) return str;
-
-  const d = parts[0].padStart(2,"0");
-  const m = months[parts[1]] || parts[1];
-  const y = parts[2].slice(-2);
-
-  return `${d}/${m}/${y}`;
-}
+  // Convert "10 Jun 2026" → "10/06/26"
+  function shortDate(str) {
+    const months = {Jan:"01",Feb:"02",Mar:"03",Apr:"04",May:"05",Jun:"06",Jul:"07",Aug:"08",Sep:"09",Oct:"10",Nov:"11",Dec:"12"};
+    const parts = (str || "").split(" ");
+    if (parts.length < 3) return str;
+    const d = parts[0].padStart(2,"0");
+    const m = months[parts[1]] || parts[1];
+    const y = parts[2].slice(-2);
+    return `${d}/${m}/${y}`;
+  }
   function escHtml(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
   function escAttr(s) { return String(s).replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
   function showToast(msg, type) {
@@ -818,13 +812,25 @@ function shortDate(str) {
   function updateHighlight() {
     const playCard   = document.getElementById("in-play-card");
     const secondCard = document.getElementById("second-card");
-    if (highlightedSlot === "second" && selectedSecond) {
+
+    // In Play card — always highlighted (red border)
+    playCard.classList.add("highlighted");
+
+    // Second card — red border only when it has a ball
+    if (selectedSecond) {
       secondCard.classList.add("highlighted");
-      playCard.classList.remove("highlighted");
     } else {
-      // In Play is always highlighted as the default active slot
-      playCard.classList.add("highlighted");
       secondCard.classList.remove("highlighted");
+    }
+
+    // The active slot (for Mark as Lost) gets the box shadow too — already via .highlighted CSS
+    // Dim the non-active filled card slightly so active slot is clear
+    if (highlightedSlot === "second" && selectedSecond) {
+      playCard.style.opacity   = "0.6";
+      secondCard.style.opacity = "1";
+    } else {
+      playCard.style.opacity   = "1";
+      secondCard.style.opacity = selected && selectedSecond ? "0.6" : "1";
     }
   }
 
@@ -1193,10 +1199,8 @@ function shortDate(str) {
       setHtml("stat-most-lost", s.mostLost && !s.mostLost.tied
         ? `${s.mostLost.count}<small>${escHtml(s.mostLost.brand)} ${escHtml(s.mostLost.model)}</small>`
         : s.mostLost && s.mostLost.tied
-          ? `<span style="font-size:12px;font-weight:600;color:var(--muted)">Tied – ${s.mostLost.tiedCount} balls each</span>`
-          : s.totalLost
-            ? `<span style="font-size:12px;font-weight:600;color:var(--muted)">Tied – multiple balls each</span>`
-            : "None yet");
+          ? `<span style="font-size:12px;font-weight:600;color:var(--muted)">Tied – ${s.mostLost.count} each</span>`
+          : "None yet");
       set("stat-avg", s.avgPerRound !== null ? s.avgPerRound : "None yet");
 
     } catch(e) {
