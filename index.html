@@ -41,7 +41,7 @@
       --dd-hover:    #1f1212;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    html { height: 100%; font-size: 16px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; overflow: hidden; }
+    html { height: 100%; font-size: 16px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; overflow: hidden; background: var(--bg); }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg); color: var(--ink);
@@ -68,7 +68,7 @@
     }
     .btn-icon:active { color: white; background: rgba(255,255,255,0.1); }
 
-    main { padding: 14px 16px 32px; display: flex; flex-direction: column; gap: 14px; width: 100%; flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    main { padding: 14px 16px; padding-bottom: max(32px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 14px; width: 100%; flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
     .section-label {
       font-size: 12px; font-weight: 700; text-transform: uppercase;
@@ -715,10 +715,16 @@
   // ── Ball filtering ────────────────────────────────────────────
   // Filters for the active slot, blocking the other slot's ball if only 1 in stock
   function getFilteredBallsForSlot(q) {
-    const otherKey = ballKey(selectingSlot === "play" ? selectedSecond : selected);
+    const otherBall   = selectingSlot === "play" ? selectedSecond : selected;
+    const currentBall = selectingSlot === "play" ? selected : selectedSecond;
+    const otherKey    = ballKey(otherBall);
+    const currentKey  = ballKey(currentBall);
     return allBalls.filter(b => {
       if (activeBagFilters.size > 0 && !activeBagFilters.has(b.bag || "")) return false;
+      // Block other slot's ball if only 1 in stock
       if (otherKey && ballKey(b) === otherKey && b.count <= 1) return false;
+      // Block current slot's own ball if only 1 in stock (can't re-select same ball)
+      if (currentKey && ballKey(b) === currentKey && b.count <= 1) return false;
       return (b.brand + " " + b.model).toLowerCase().includes(q);
     });
   }
@@ -813,24 +819,18 @@
     const playCard   = document.getElementById("in-play-card");
     const secondCard = document.getElementById("second-card");
 
-    // In Play card — always highlighted (red border)
-    playCard.classList.add("highlighted");
-
-    // Second card — red border only when it has a ball
-    if (selectedSecond) {
-      secondCard.classList.add("highlighted");
-    } else {
-      secondCard.classList.remove("highlighted");
-    }
-
-    // The active slot (for Mark as Lost) gets the box shadow too — already via .highlighted CSS
-    // Dim the non-active filled card slightly so active slot is clear
     if (highlightedSlot === "second" && selectedSecond) {
-      playCard.style.opacity   = "0.6";
+      // Second ball is active
+      secondCard.classList.add("highlighted");
+      playCard.classList.remove("highlighted");
+      playCard.style.opacity   = selected ? "0.6" : "1";
       secondCard.style.opacity = "1";
     } else {
+      // In Play is active (default)
+      playCard.classList.add("highlighted");
+      secondCard.classList.remove("highlighted");
       playCard.style.opacity   = "1";
-      secondCard.style.opacity = selected && selectedSecond ? "0.6" : "1";
+      secondCard.style.opacity = selectedSecond ? "0.6" : "1";
     }
   }
 
