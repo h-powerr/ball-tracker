@@ -95,8 +95,10 @@
       position: relative; overflow: hidden;
     }
     .ball-icon.empty  { border: 2px dashed var(--border); color: var(--border); font-size: 22px; }
-    .ball-icon.filled { font-size: 36px; border: 1.5px solid var(--border); }
+    .ball-icon.filled { font-size: 44px; }
     .ball-icon img { width: 34px; height: 34px; object-fit: contain; position: absolute; }
+    .ball-logo { position: relative; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ball-logo img { position: absolute; object-fit: contain; }
     .empty-label { color: var(--muted); font-size: 15px; opacity: 0.6; }
     .change-btn {
       width: 100%; padding: 9px; border-radius: 10px;
@@ -130,8 +132,8 @@
     }
     .bag-chips-wrap.visible { display: flex; }
     .dd-item {
-      padding: 12px 16px; font-size: 15px; cursor: pointer;
-      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; font-size: 15px; cursor: pointer;
+      display: flex; align-items: center; gap: 12px;
       border-bottom: 1px solid var(--border-light); transition: background 0.1s; color: var(--ink);
     }
     .dd-item:last-child { border-bottom: none; }
@@ -622,6 +624,18 @@
     return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")} ${hh}:${mm}`;
   }
   function ballKey(b) { return b ? `${b.brand}||${b.model}||${b.colour}||${b.bag||""}` : null; }
+
+  // Renders a ball emoji with brand logo overlaid. size = emoji font-size in px.
+  function ballWithLogo(brand, colour, size) {
+    const logoName = (brand || "").replace(/\s+/g, "");
+    const logoSize = Math.round(size * 0.7);
+    return `<span class="ball-logo" style="font-size:${size}px;width:${size}px;height:${size}px">
+      ${ballEmoji(colour)}
+      <img src="logos/${logoName}.png"
+        style="width:${logoSize}px;height:${logoSize}px;object-fit:contain;position:absolute"
+        onerror="this.style.display='none'">
+    </span>`;
+  }
   // Convert "10 Jun 2026, 15:36" → "Lost on 10 Jun 2026 @ 15:36"
   function formatLostLabel(label) {
     if (!label) return "Lost";
@@ -741,8 +755,13 @@
     if (!balls.length) { dd.innerHTML = '<div class="dd-empty">No balls found</div>'; return; }
     dd.innerHTML = balls.map((b, i) =>
       `<div class="dd-item" data-i="${i}">
-        <span style="font-size:20px;line-height:1;flex-shrink:0">${ballEmoji(b.colour)}</span>
-        <span><strong>${escHtml(b.brand)}</strong> ${escHtml(b.model)}${b.count > 1 ? ` <span style="color:var(--muted);font-size:13px;font-weight:400">×${b.count}</span>` : ""}${b.bag ? ` <span style="color:var(--muted);font-size:11px"> · ${escHtml(b.bag)}</span>` : ""}</span>
+        ${ballWithLogo(b.brand, b.colour, 36)}
+        <span style="flex:1;min-width:0">
+          <strong style="font-size:16px">${escHtml(b.brand)}</strong>
+          <span style="font-size:15px"> ${escHtml(b.model)}</span>
+          ${b.count > 1 ? `<span style="color:var(--muted);font-size:13px"> ×${b.count}</span>` : ""}
+          ${b.bag ? `<div style="color:var(--muted);font-size:12px;margin-top:1px">${escHtml(b.bag)}</div>` : ""}
+        </span>
       </div>`
     ).join("");
   }
@@ -785,12 +804,7 @@
       card.className = `in-play-card${isPlay ? "" : " second"} filled`;
       if (animate) card.classList.add("promote-animate");
       icon.className = "ball-icon filled";
-      // Colour emoji as background, logo overlaid on top
-      const logoName = ball.brand.replace(/\s+/g, "");
-      icon.innerHTML = `<span style="font-size:36px;line-height:1">${ballEmoji(ball.colour)}</span>
-        <img src="logos/${logoName}.png"
-          style="width:34px;height:34px;object-fit:contain;position:absolute;filter:${ball.colour.toLowerCase()==='white'?'invert(1) brightness(0)':'invert(1)'}"
-          onerror="this.style.display='none'">`;
+      icon.innerHTML = ballWithLogo(ball.brand, ball.colour, 44);
       const lbl = document.getElementById(labelId);
       if (lbl) lbl.outerHTML = `<div id="${labelId}">
         <div style="font-size:${isPlay?"16px":"14px"};font-weight:800;line-height:1.2;color:var(--ink)">${escHtml(ball.brand)}</div>
@@ -934,10 +948,10 @@
     if (!balls.length) { body.innerHTML = '<div class="sheet-empty">No balls lost yet</div>'; return; }
     body.innerHTML = balls.map(b =>
       `<div class="restore-item">
-        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
-          <span style="font-size:22px;flex-shrink:0">${ballEmoji(b.colour)}</span>
+        <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+          ${ballWithLogo(b.brand, b.colour, 40)}
           <div style="min-width:0">
-            <div class="restore-name">${escHtml(b.brand)} ${escHtml(b.model)}</div>
+            <div class="restore-name" style="font-size:16px">${escHtml(b.brand)} ${escHtml(b.model)}</div>
             <div class="restore-time">${formatLostLabel(b.timeLabel)}</div>
           </div>
         </div>
@@ -990,10 +1004,10 @@
           <span style="font-size:12px;font-weight:700;background:var(--border);color:var(--ink);padding:2px 8px;border-radius:20px">${dayBalls.length} lost</span>
         </div>
         ${dayBalls.map(b => `
-          <div style="display:flex;align-items:center;gap:10px;padding:8px 20px">
-            <span style="font-size:18px;flex-shrink:0">${ballEmoji(b.colour)}</span>
-            <span style="font-size:14px;font-weight:600;color:var(--ink);flex:1">${escHtml(b.brand)} ${escHtml(b.model)}</span>
-            <span style="font-size:12px;color:var(--muted);flex-shrink:0">${escHtml(b.timeStr)}</span>
+          <div style="display:flex;align-items:center;gap:12px;padding:8px 20px">
+            ${ballWithLogo(b.brand, b.colour, 38)}
+            <span style="font-size:15px;font-weight:600;color:var(--ink);flex:1">${escHtml(b.brand)} ${escHtml(b.model)}</span>
+            <span style="font-size:13px;color:var(--muted);flex-shrink:0">${escHtml(b.timeStr)}</span>
           </div>`).join("")}
       </div>`
     ).join("");
