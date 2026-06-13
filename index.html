@@ -628,15 +628,7 @@
   // Renders a ball emoji with brand logo overlaid. size = emoji font-size in px.
   function ballWithLogo(brand, colour, size) {
     const logoName = (brand || "").replace(/\s+/g, "");
-    const logoPercent = {
-      "Titleist": 80, "TaylorMade": 80, "Callaway": 75, "Nike": 75,
-      "Srixon": 70, "Wilson": 70, "Slazenger": 70, "Maxfli": 70,
-      "Bridgestone": 50, "Dunlop": 50, "Volvik": 55, "Pinnacle": 55,
-      "TopFlite": 70, "Inesis": 65, "FAZER": 65, "Mizuno": 65,
-      "MizunoPro": 65, "Vice": 65, "Kirkland": 65, "Noodle": 65,
-      "RayCook": 60, "Cut": 65, "DONNAY": 65,
-    }[logoName] || 60;
-    const logoSize = Math.round(size * logoPercent / 100);
+    const logoSize = Math.round(size * 0.95);
     return `<span class="ball-logo" style="font-size:${size}px;width:${size}px;height:${size}px">
       ${ballEmoji(colour)}
       <img src="logos/${logoName}.png"
