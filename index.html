@@ -628,7 +628,7 @@
   // Renders a ball emoji with brand logo overlaid. size = emoji font-size in px.
   function ballWithLogo(brand, colour, size) {
     const logoName = (brand || "").replace(/\s+/g, "");
-    const logoSize = Math.round(size * 0.95);
+    const logoSize = Math.round(size * 0.70);
     return `<span class="ball-logo" style="font-size:${size}px;width:${size}px;height:${size}px">
       ${ballEmoji(colour)}
       <img src="logos/${logoName}.png"
@@ -980,45 +980,34 @@
     const body = document.getElementById("body-history");
     if (!balls.length) { body.innerHTML = '<div class="sheet-empty">No balls lost yet</div>'; return; }
 
-    // Group by date — timeLabel from API is "10 Jun 2026, 15:36"
+    // Group by date using ts timestamp
     const groups = {};
-    const timeOf = {};
     for (const b of balls) {
-      const label = b.timeLabel || "";
-      let dateKey, timeStr;
-      if (label.includes(",")) {
-        [dateKey, timeStr] = label.split(",").map(s => s.trim());
-      } else {
-        const parts = label.split(" ");
-        dateKey = parts.slice(0, 3).join(" ");
-        timeStr = parts[3] || "";
-      }
-      if (!groups[dateKey]) groups[dateKey] = [];
-      groups[dateKey].push({ ...b, timeStr });
-    }
-
-    const monthIndex = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
-    function parseDateKey(d) {
-      const p = d.split(" ");
-      return new Date(parseInt(p[2]), monthIndex[p[1]] ?? 0, parseInt(p[0]));
+      const d = new Date(b.ts);
+      const dateKey = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      const timeStr = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+      if (!groups[dateKey]) groups[dateKey] = { ts: b.ts, balls: [] };
+      groups[dateKey].balls.push({ ...b, timeStr });
     }
 
     body.innerHTML = Object.entries(groups)
-      .sort((a, b) => parseDateKey(b[0]) - parseDateKey(a[0]))
-      .map(([date, dayBalls]) => `
+      .sort((a, b) => b[1].ts - a[1].ts)
+      .map(([date, group]) => {
+        const sorted = [...group.balls].sort((a, b) => b.ts - a.ts);
+        return `
       <div style="border-bottom:1px solid var(--border-light)">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px 6px">
           <span style="font-size:14px;font-weight:700;color:var(--ink)">${escHtml(date)}</span>
-          <span style="font-size:12px;font-weight:700;background:var(--border);color:var(--ink);padding:2px 8px;border-radius:20px">${dayBalls.length} lost</span>
+          <span style="font-size:12px;font-weight:700;background:var(--border);color:var(--ink);padding:2px 8px;border-radius:20px">${sorted.length} lost</span>
         </div>
-        ${dayBalls.map(b => `
+        ${sorted.map(b => `
           <div style="display:flex;align-items:center;gap:12px;padding:8px 20px">
+            <span style="font-size:13px;color:var(--muted);flex-shrink:0;width:38px">${escHtml(b.timeStr)}</span>
             ${ballWithLogo(b.brand, b.colour, 38)}
             <span style="font-size:15px;font-weight:600;color:var(--ink);flex:1">${escHtml(b.brand)} ${escHtml(b.model)}</span>
-            <span style="font-size:13px;color:var(--muted);flex-shrink:0">${escHtml(b.timeStr)}</span>
           </div>`).join("")}
-      </div>`
-    ).join("");
+      </div>`;
+      }).join("");
   }
 
   async function restoreBall(rowIndex, brand, model) {
