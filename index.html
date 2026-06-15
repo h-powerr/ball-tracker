@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+l<!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
@@ -41,14 +41,16 @@
       --dd-hover:    #1f1212;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    html { height: 100%; font-size: 16px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; overflow: hidden; background: var(--bg); }
+    html { height: 100%; height: -webkit-fill-available; font-size: 16px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; overflow: hidden; background: var(--pine); }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg); color: var(--ink);
-      height: 100%; overflow: hidden;
+      height: 100%; height: -webkit-fill-available;
+      min-height: 100vh; min-height: -webkit-fill-available;
+      overflow: hidden;
       transition: background 0.25s, color 0.25s;
     }
-    .app { width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+    .app { width: 100%; height: 100%; height: -webkit-fill-available; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
 
     header {
       background: var(--pine); color: #fff;
@@ -311,7 +313,7 @@
     /* ── Hole Stats sheet (bottom sheet, full height) ── */
     .sheet-full {
       position: fixed; bottom: 0; left: 0; right: 0;
-      height: calc(100vh - env(safe-area-inset-top) - 20px);
+      height: 88%;
       background: var(--surface); border-radius: 20px 20px 0 0;
       z-index: 101;
       transform: translateY(100%);
@@ -356,18 +358,18 @@
 </head>
 <body>
 <div class="app">
-  <header>
-    <div class="header-left">
+  <header style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center">
+    <div style="display:flex;align-items:center">
       <img src="icon.png" style="width:28px;height:28px;border-radius:6px">
-      <button id="course-pill" onclick="openCoursePicker()"
-        style="background:rgba(255,255,255,0.12);border:none;border-radius:20px;padding:5px 12px;
-               color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;max-width:180px">
-        <span style="font-size:11px;opacity:0.7">📍</span>
-        <span id="course-pill-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Drax Golf Club</span>
-        <span style="font-size:10px;opacity:0.6">▾</span>
-      </button>
     </div>
-    <div class="header-right">
+    <button id="course-pill" onclick="openCoursePicker()"
+      style="background:rgba(255,255,255,0.12);border:none;border-radius:20px;padding:5px 12px;
+             color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;max-width:200px">
+      <span style="font-size:11px;opacity:0.7">📍</span>
+      <span id="course-pill-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Drax Golf Club</span>
+      <span style="font-size:10px;opacity:0.6">▾</span>
+    </button>
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px">
       <button class="btn-icon" id="btn-dark" onclick="toggleDark()" title="Toggle dark mode">🌙</button>
       <button class="btn-icon" onclick="loadBalls(); loadStats();" title="Refresh">↺</button>
     </div>
@@ -649,15 +651,15 @@
 <!-- Hole Stats sheet -->
 <div class="sheet-full" id="sheet-holestats">
   <div class="sheet-handle"></div>
-  <div class="sheet-header">
-    <span class="sheet-title">⛳ Hole Stats</span>
-    <div style="display:flex;align-items:center;gap:6px">
-      <button id="holestats-course-pill" onclick="openHoleStatsCourse()"
-        style="background:var(--border-light);border:1.5px solid var(--border);border-radius:20px;padding:4px 10px;color:var(--ink);font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;max-width:160px">
-        <span style="font-size:10px;color:var(--muted)">📍</span>
-        <span id="holestats-course-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Drax Golf Club</span>
-        <span style="font-size:9px;color:var(--muted)">▾</span>
-      </button>
+  <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:14px 20px 12px;border-bottom:1px solid var(--border-light);flex-shrink:0">
+    <div></div>
+    <button id="holestats-course-pill" onclick="openHoleStatsCourse()"
+      style="background:var(--border-light);border:1.5px solid var(--border);border-radius:20px;padding:5px 12px;color:var(--ink);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;max-width:180px">
+      <span style="font-size:11px;color:var(--muted)">📍</span>
+      <span id="holestats-course-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Drax Golf Club</span>
+      <span style="font-size:10px;color:var(--muted)">▾</span>
+    </button>
+    <div style="display:flex;justify-content:flex-end">
       <button class="sheet-close" onclick="closeHoleStats()">✕</button>
     </div>
   </div>
@@ -713,6 +715,7 @@
   // Caches
   let cachedLostBalls     = null;
   let summaryColourFilter = null;
+  let summaryBagFilter = null;
   let pendingLostBall     = null;
   let lastSelectedHole    = null;
   let currentCourse       = localStorage.getItem("balltracker-course") || "Drax Golf Club";
@@ -1397,7 +1400,7 @@
     const body = document.getElementById("body-summary");
     if (!balls.length) { body.innerHTML = '<div class="sheet-empty">No balls in stock</div>'; return; }
 
-    // Colour pills — always from full allBalls, not filtered subset
+    // Colour pills
     const totalBalls   = allBalls.reduce((sum, b) => sum + b.count, 0);
     const colourTotals = {};
     for (const b of allBalls) colourTotals[b.colour || "White"] = (colourTotals[b.colour || "White"] || 0) + b.count;
@@ -1408,9 +1411,31 @@
         .map(c => `<div class="colour-pill ${summaryColourFilter === c ? "active" : ""}" onclick="setSummaryFilter('${escAttr(c)}')">${ballEmoji(c)} ${colourTotals[c]}</div>`)
         .join("");
 
-    // Brand accordion from filtered balls
+    // Bag chips
+    const bagOrder = ["Pro V Bag","Other Titleist Bag","Callaway Bag","Good Bag","Yellow Bag","The Rest"];
+    const allBags = [...new Set(allBalls.map(b => b.bag).filter(Boolean))];
+    allBags.sort((a, b) => {
+      const ai = bagOrder.indexOf(a), bi = bagOrder.indexOf(b);
+      if (ai === -1 && bi === -1) return a.localeCompare(b);
+      if (ai === -1) return 1; if (bi === -1) return -1;
+      return ai - bi;
+    });
+    const bagChipsHtml = allBags.length > 1
+      ? `<div class="colour-pills" style="margin-top:6px">` +
+        `<div class="colour-pill ${summaryBagFilter === null ? "active" : ""}" onclick="setSummaryBagFilter(null)">All Bags</div>` +
+        allBags.map(bg => `<div class="colour-pill ${summaryBagFilter === bg ? "active" : ""}" onclick="setSummaryBagFilter('${escAttr(bg)}')">${escHtml(bg)}</div>`).join("") +
+        `</div>`
+      : "";
+
+    // Filtered balls
+    const filtered = allBalls.filter(b =>
+      (!summaryColourFilter || (b.colour || "White") === summaryColourFilter) &&
+      (!summaryBagFilter    || b.bag === summaryBagFilter)
+    );
+
+    // Brand accordion
     const brandMap = {};
-    for (const b of balls) {
+    for (const b of filtered) {
       if (!brandMap[b.brand]) brandMap[b.brand] = { total: 0, models: {} };
       brandMap[b.brand].total += b.count;
       const key = `${b.model}||${b.colour || "White"}`;
@@ -1433,11 +1458,15 @@
         </div>`;
       }).join("");
 
-    body.innerHTML = `<div class="colour-pills">${pillsHtml}</div><div>${accordionHtml || '<div class="sheet-empty" style="padding:20px">No balls in stock</div>'}</div>`;
+    body.innerHTML = `<div class="colour-pills">${pillsHtml}</div>${bagChipsHtml}<div>${accordionHtml || '<div class="sheet-empty" style="padding:20px">No balls match</div>'}</div>`;
   }
   function setSummaryFilter(colour) {
     summaryColourFilter = colour;
-    renderSummary(colour === null ? allBalls : allBalls.filter(b => (b.colour || "White") === colour));
+    renderSummary(allBalls);
+  }
+  function setSummaryBagFilter(bag) {
+    summaryBagFilter = bag;
+    renderSummary(allBalls);
   }
   function toggleAccordion(idx) {
     document.getElementById(`accordion-${idx}`).classList.toggle("open");
