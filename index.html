@@ -311,7 +311,7 @@
     /* ── Hole Stats sheet (bottom sheet, full height) ── */
     .sheet-full {
       position: fixed; bottom: 0; left: 0; right: 0;
-      height: 92vh;
+      height: calc(100vh - env(safe-area-inset-top) - 20px);
       background: var(--surface); border-radius: 20px 20px 0 0;
       z-index: 101;
       transform: translateY(100%);
@@ -1483,6 +1483,65 @@
     }
   }
 
+  function buildLineGraph(balls) {
+    if (!balls || !balls.length) return '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">No data yet</div>';
+
+    // Group by date
+    const dayMap = {};
+    for (const b of (balls || [])) {
+      const d = new Date(b.ts);
+      const key = d.toLocaleDateString("en-GB", { day:"numeric", month:"short" });
+      const ts  = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      if (!dayMap[key]) dayMap[key] = { key, ts, count: 0 };
+      dayMap[key].count++;
+    }
+    const days = Object.values(dayMap).sort((a, b) => a.ts - b.ts);
+    if (days.length < 2) {
+      const d = days[0];
+      return d ? `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Only 1 round — ${d.count} ball${d.count!==1?"s":""} lost on ${d.key}</div>` : "";
+    }
+
+    const W = 320, H = 110, padL = 28, padR = 12, padT = 10, padB = 28;
+    const maxVal = Math.max(...days.map(d => d.count), 1);
+    const xStep  = (W - padL - padR) / (days.length - 1);
+
+    function px(i) { return padL + i * xStep; }
+    function py(v) { return padT + (H - padT - padB) * (1 - v / maxVal); }
+
+    // Build polyline points
+    const pts = days.map((d, i) => `${px(i).toFixed(1)},${py(d.count).toFixed(1)}`).join(" ");
+
+    // Y axis labels (0 and max)
+    const yLabels = [0, Math.ceil(maxVal / 2), maxVal].map(v =>
+      `<text x="${padL - 5}" y="${py(v) + 4}" text-anchor="end" font-size="9" fill="var(--muted)">${v}</text>`
+    ).join("");
+
+    // X axis labels — show first, last, and a few in between
+    const labelIdx = new Set([0, days.length - 1]);
+    if (days.length > 4) labelIdx.add(Math.round(days.length / 2));
+    const xLabels = [...labelIdx].map(i =>
+      `<text x="${px(i).toFixed(1)}" y="${H - padB + 14}" text-anchor="middle" font-size="9" fill="var(--muted)">${days[i].key}</text>`
+    ).join("");
+
+    // Dots
+    const dots = days.map((d, i) => {
+      const isMax = d.count === maxVal;
+      return `<circle cx="${px(i).toFixed(1)}" cy="${py(d.count).toFixed(1)}" r="${isMax ? 4 : 3}"
+        fill="${isMax ? "var(--turf)" : "var(--pine)"}" stroke="var(--surface)" stroke-width="1.5"/>`;
+    }).join("");
+
+    // Fill area under line
+    const fillPts = `${padL.toFixed(1)},${py(0).toFixed(1)} ${pts} ${px(days.length-1).toFixed(1)},${py(0).toFixed(1)}`;
+
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">
+      <polygon points="${fillPts}" fill="var(--pine)" opacity="0.08"/>
+      <polyline points="${pts}" fill="none" stroke="var(--pine)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      ${yLabels}
+      ${xLabels}
+      ${dots}
+    </svg>`;
+  }
+
   function renderHoleStatsBody(data) {
     const { holes, worstHole, numRounds } = data;
     const maxTotal = Math.max(...holes.map(h => h.total), 1);
@@ -1492,7 +1551,7 @@
       const displayVal = h.total === 0 ? "·" : h.avg.toFixed(2);
       const countClass = h.total === 0 ? "zero" : isWorst ? "worst" : "";
       return `<div class="hole-cell" style="${isWorst ? "background:var(--turf-light);" : ""}">
-        <span class="hole-num" style="${isWorst ? "color:var(--turf);" : ""}">H${h.hole}</span>
+        <span class="hole-num" style="${isWorst ? "color:var(--turf);" : ""}">Hole ${h.hole}</span>
         <span class="hole-count ${countClass}">${displayVal}</span>
         <span class="hole-avg" style="${h.total === 0 ? "opacity:0" : ""}">${h.total > 0 ? h.total + " total" : "0"}</span>
       </div>`;
@@ -1501,16 +1560,16 @@
     function barCol(h) {
       const isWorst = worstHole && h.hole === worstHole.hole && h.total > 0;
       const pct = h.total / maxTotal;
-      const px  = Math.max(Math.round(pct * 100), h.total > 0 ? 20 : 3);
-      const showInside = px >= 22 && h.total > 0;
-      return `<div class="bar-col">
-        <div class="bar-outer">
-          <div class="bar-inner${isWorst ? " worst" : ""}" style="height:${px}px">
-            ${showInside ? `<span class="bar-num">${h.total}</span>` : ""}
+      const barPx = Math.max(Math.round(pct * 80), h.total > 0 ? 18 : 3);
+      const showInside = barPx >= 20 && h.total > 0;
+      return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1">
+        <div style="height:80px;display:flex;flex-direction:column;justify-content:flex-end;width:18px">
+          <div style="width:100%;border-radius:3px 3px 0 0;background:${isWorst?"var(--turf)":"var(--pine)"};height:${barPx}px;display:flex;align-items:flex-start;justify-content:center">
+            ${showInside ? `<span style="font-size:9px;font-weight:800;color:#fff;padding-top:2px">${h.total}</span>` : ""}
           </div>
         </div>
-        ${!showInside && h.total > 0 ? `<span class="bar-num outside">${h.total}</span>` : `<span class="bar-num outside" style="opacity:0">·</span>`}
-        <span class="bar-hole">${h.hole}</span>
+        <span style="font-size:9px;font-weight:800;color:${h.total>0?"var(--ink)":"transparent"}">${h.total > 0 && !showInside ? h.total : "·"}</span>
+        <span style="font-size:9px;font-weight:600;color:var(--muted);white-space:nowrap">H${h.hole}</span>
       </div>`;
     }
 
@@ -1519,9 +1578,12 @@
       : "None yet";
     const avgLabel = worstHole ? worstHole.avg.toFixed(2) : "–";
 
-    // Update main page Rounds Tracked from numRounds
+    // Update main page Rounds Tracked
     const rtEl = document.getElementById("stat-rounds-tracked");
     if (rtEl) { rtEl.className = "stat-value"; rtEl.textContent = numRounds || 0; }
+
+    // Line graph
+    const lineGraph = buildLineGraph(cachedLostBalls);
 
     document.getElementById("body-holestats").innerHTML = `
       <!-- Worst Hole stats -->
@@ -1543,7 +1605,7 @@
         </div>
       </div>
 
-      <!-- Scorecard: avg per round per hole -->
+      <!-- Loss average per hole -->
       <div>
         <div class="section-label">Loss Average Per Hole</div>
         <div class="scorecard-wrap">
@@ -1553,27 +1615,30 @@
         </div>
       </div>
 
-      <!-- Bar chart: total per hole, 2x9 grid -->
+      <!-- Bar chart: 2 rows, no Front/Back label -->
       <div>
         <div class="section-label">Total Balls Lost Per Hole</div>
         <div class="barchart-wrap">
-          <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border)">
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);padding:7px 12px;border-right:1px solid var(--border)">Front 9</div>
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);padding:7px 12px">Back 9</div>
+          <div style="display:flex;justify-content:space-around;align-items:flex-end;padding:14px 10px 10px;border-bottom:1px solid var(--border-light)">
+            ${holes.filter(h=>h.hole<=9).map(barCol).join("")}
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr">
-            <div style="display:flex;justify-content:space-around;align-items:flex-end;padding:16px 8px 12px;border-right:1px solid var(--border);min-height:130px">
-              ${holes.filter(h=>h.hole<=9).map(barCol).join("")}
-            </div>
-            <div style="display:flex;justify-content:space-around;align-items:flex-end;padding:16px 8px 12px;min-height:130px">
-              ${holes.filter(h=>h.hole>=10).map(barCol).join("")}
-            </div>
+          <div style="display:flex;justify-content:space-around;align-items:flex-end;padding:14px 10px 10px">
+            ${holes.filter(h=>h.hole>=10).map(barCol).join("")}
           </div>
         </div>
       </div>
 
-
+      <!-- Line graph -->
+      <div>
+        <div class="section-label">Balls Lost Per Round</div>
+        <div style="background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:16px 12px 8px">
+          ${lineGraph}
+        </div>
+      </div>
     `;
+    // Populate worst day
+    const hsWd = document.getElementById("hs-worst-day");
+    if (hsWd && window._worstDayStr) hsWd.textContent = window._worstDayStr;
   }
 
   // ── Hole Stats course picker ───────────────────────────────────
