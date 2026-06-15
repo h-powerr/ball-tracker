@@ -834,6 +834,10 @@
     currentCourse = val;
     localStorage.setItem("balltracker-course", currentCourse);
     updateCoursePill();
+    // Sync hole stats course pill if visible
+    const hsLabel = document.getElementById("holestats-course-label");
+    if (hsLabel) hsLabel.textContent = currentCourse;
+    cachedHoleStats = null;
     closeCoursePicker();
   }
 
@@ -1127,9 +1131,10 @@
   }
 
   async function confirmMarkAsLost(hole) {
+    // Capture ball BEFORE closeHolePicker nulls pendingLostBall
+    const ball = pendingLostBall;
     closeHolePicker();
     lastSelectedHole = hole;
-    const ball = pendingLostBall;
     if (!ball || pending) return;
     pending = true;
     const { brand, model, colour } = ball;
@@ -1193,6 +1198,7 @@
 
     const now = new Date();
     const todayKey = now.toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" });
+    // todayKey e.g. "15 Jun 2026" — matches dateKey format from ts
 
     // Group by date
     const groups = {};
@@ -1450,13 +1456,12 @@
   }
 
   // ── Hole Stats Sheet ──────────────────────────────────────────
-  let holeStatsCourse = localStorage.getItem("balltracker-course") || "Drax Golf Club";
   let cachedHoleStats = null;
 
   function openHoleStats() {
     document.getElementById("overlay").classList.add("open");
     document.getElementById("sheet-holestats").classList.add("open");
-    document.getElementById("holestats-course-label").textContent = holeStatsCourse;
+    document.getElementById("holestats-course-label").textContent = currentCourse;
     if (!cachedHoleStats) loadHoleStats();
     else renderHoleStatsBody(cachedHoleStats);
     const hsWd = document.getElementById("hs-worst-day");
@@ -1471,7 +1476,7 @@
     const body = document.getElementById("body-holestats");
     body.innerHTML = '<div style="text-align:center;padding:40px"><span class="spin spin-light"></span></div>';
     try {
-      cachedHoleStats = await apiGet("getHoleStats", { course: holeStatsCourse });
+      cachedHoleStats = await apiGet("getHoleStats", { course: currentCourse });
       renderHoleStatsBody(cachedHoleStats);
     } catch(e) {
       body.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted)">⚠️ Failed to load</div>';
@@ -1591,19 +1596,19 @@
     wrap.innerHTML = courses.map(c =>
       `<button onclick="document.getElementById('holestats-course-input').value='${escAttr(c)}'"
         style="padding:6px 14px;border-radius:20px;
-               border:1.5px solid ${c===holeStatsCourse?"var(--turf-border)":"var(--border)"};
-               background:${c===holeStatsCourse?"var(--turf-light)":"var(--surface)"};
-               color:${c===holeStatsCourse?"var(--turf)":"var(--ink)"};
+               border:1.5px solid ${c===currentCourse?"var(--turf-border)":"var(--border)"};
+               background:${c===currentCourse?"var(--turf-light)":"var(--surface)"};
+               color:${c===currentCourse?"var(--turf)":"var(--ink)"};
                font-size:13px;font-weight:600;cursor:pointer">${escHtml(c)}</button>`
     ).join("");
   }
   function confirmHoleStatsCourse() {
     const val = document.getElementById("holestats-course-input").value.trim();
     if (!val) return;
-    holeStatsCourse = val;
-    localStorage.setItem("balltracker-course", holeStatsCourse);
+    currentCourse = val;
+    localStorage.setItem("balltracker-course", currentCourse);
     updateCoursePill();
-    document.getElementById("holestats-course-label").textContent = holeStatsCourse;
+    document.getElementById("holestats-course-label").textContent = currentCourse;
     closeHoleStatsCourse();
     cachedHoleStats = null;
     cachedLostBalls = null;
