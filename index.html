@@ -313,7 +313,13 @@
   <header>
     <div class="header-left">
       <img src="icon.png" style="width:28px;height:28px;border-radius:6px">
-      <h1>Ball Tracker</h1>
+      <button id="course-pill" onclick="openCoursePicker()"
+        style="background:rgba(255,255,255,0.12);border:none;border-radius:20px;padding:5px 12px;
+               color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;max-width:180px">
+        <span style="font-size:11px;opacity:0.7">📍</span>
+        <span id="course-pill-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Drax Golf Club</span>
+        <span style="font-size:10px;opacity:0.6">▾</span>
+      </button>
     </div>
     <div class="header-right">
       <button class="btn-icon" id="btn-dark" onclick="toggleDark()" title="Toggle dark mode">🌙</button>
@@ -404,7 +410,7 @@
 
     <!-- View buttons -->
     <div class="btn-grid">
-      <button class="btn btn-outline" onclick="openHistory()" style="font-size:14px;padding:12px">📅&nbsp; Round History</button>
+      <button class="btn btn-outline" onclick="window.location.href='Stats.html'" style="font-size:14px;padding:12px">📊&nbsp; More Stats</button>
       <button class="btn btn-outline" onclick="openStockSummary()" style="font-size:14px;padding:12px">📦&nbsp; Ball Stock</button>
     </div>
   </main>
@@ -439,14 +445,37 @@
   </div>
 </div>
 
-<!-- Round History sheet -->
-<div class="sheet" id="sheet-history">
-  <div class="sheet-handle"></div>
-  <div class="sheet-header">
-    <span class="sheet-title">Round History</span>
-    <button class="sheet-close" onclick="closeAll()">✕</button>
+<!-- Hole Picker modal -->
+<div class="overlay" id="overlay-hole" onclick="closeHolePicker()" style="z-index:200"></div>
+<div id="modal-hole" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:201;
+  background:var(--surface);border-radius:20px 20px 0 0;padding:20px 16px;
+  padding-bottom:max(20px,env(safe-area-inset-bottom));box-shadow:0 -6px 30px rgba(0,0,0,0.2)">
+  <div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px"></div>
+  <div style="font-size:17px;font-weight:700;color:var(--ink);margin-bottom:6px;text-align:center">Which hole did you lose it on?</div>
+  <div id="hole-ball-label" style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:16px"></div>
+  <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:6px;margin-bottom:10px">
+    <div style="grid-column:span 9;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);text-align:center;padding:2px 0">Front 9</div>
   </div>
-  <div class="sheet-body" id="body-history"></div>
+  <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:6px;margin-bottom:14px" id="hole-grid-front"></div>
+  <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:6px;margin-bottom:10px">
+    <div style="grid-column:span 9;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);text-align:center;padding:2px 0">Back 9</div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:6px;margin-bottom:20px" id="hole-grid-back"></div>
+  <button onclick="closeHolePicker()" style="width:100%;padding:14px;border-radius:var(--radius);border:1.5px solid var(--border);background:transparent;color:var(--muted);font-size:15px;font-weight:600;cursor:pointer">Cancel</button>
+</div>
+
+<!-- Course Picker modal -->
+<div class="overlay" id="overlay-course" onclick="closeCoursePicker()" style="z-index:200"></div>
+<div id="modal-course" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:201;
+  background:var(--surface);border-radius:20px 20px 0 0;padding:20px 16px;
+  padding-bottom:max(20px,env(safe-area-inset-bottom));box-shadow:0 -6px 30px rgba(0,0,0,0.2)">
+  <div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px"></div>
+  <div style="font-size:17px;font-weight:700;color:var(--ink);margin-bottom:14px">Change Course</div>
+  <div id="course-chips-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
+  <input type="text" id="course-input" class="field-input" placeholder="Type a new course…"
+    autocomplete="off" autocorrect="off" spellcheck="false"
+    style="margin-bottom:14px" oninput="onCourseInput()">
+  <button id="course-confirm-btn" onclick="confirmCourse()" style="width:100%;padding:14px;border-radius:var(--radius);background:var(--pine);color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer">Set Course</button>
 </div>
 <div class="sheet" id="sheet-restore">
   <div class="sheet-handle"></div>
@@ -587,6 +616,10 @@
   // Caches
   let cachedLostBalls     = null;
   let summaryColourFilter = null;
+  let pendingLostBall     = null;
+  let lastSelectedHole    = null;
+  let currentCourse       = localStorage.getItem("balltracker-course") || "Drax Golf Club";
+  let knownCourses        = [];
 
   // ── Dark mode ─────────────────────────────────────────────────
   (function() {
@@ -636,14 +669,12 @@
         onerror="this.style.display='none'">
     </span>`;
   }
-  // Convert "10 Jun 2026, 15:36" → "Lost on 10 Jun 2026 @ 15:36"
-  function formatLostLabel(label) {
-    if (!label) return "Lost";
-    if (label.includes(",")) {
-      const [date, time] = label.split(",").map(s => s.trim());
-      return `Lost on ${escHtml(date)} @ ${escHtml(time)}`;
-    }
-    return `Lost ${escHtml(label)}`;
+  function formatLostLabel(b) {
+    if (!b) return "Lost";
+    const d = new Date(b.ts);
+    const dateStr = d.toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" });
+    const holePart = b.hole ? ` @ Hole ${b.hole}` : "";
+    return `Lost on ${escHtml(dateStr)}${escHtml(holePart)}`;
   }
   // Convert "10 Jun 2026" → "10/06/26"
   function shortDate(str) {
@@ -665,8 +696,53 @@
     toastTimer = setTimeout(() => t.classList.remove("show"), 3000);
   }
 
+  // ── Course ────────────────────────────────────────────────────
+  function updateCoursePill() {
+    document.getElementById("course-pill-label").textContent = currentCourse;
+  }
+  async function openCoursePicker() {
+    document.getElementById("course-input").value = "";
+    document.getElementById("course-confirm-btn").textContent = "Set Course";
+    renderCourseChips();
+    document.getElementById("overlay-course").style.display = "block";
+    document.getElementById("modal-course").style.display   = "block";
+    try {
+      knownCourses = await apiGet("getCourseNames");
+      renderCourseChips();
+    } catch(e) { /* silent */ }
+  }
+  function closeCoursePicker() {
+    document.getElementById("overlay-course").style.display = "none";
+    document.getElementById("modal-course").style.display   = "none";
+  }
+  function renderCourseChips() {
+    const wrap = document.getElementById("course-chips-list");
+    const courses = knownCourses.length ? knownCourses : ["Drax Golf Club"];
+    wrap.innerHTML = courses.map(c =>
+      `<button onclick="pickCourse('${escAttr(c)}')"
+        style="padding:6px 14px;border-radius:20px;border:1.5px solid ${c === currentCourse ? "var(--turf-border)" : "var(--border)"};
+               background:${c === currentCourse ? "var(--turf-light)" : "var(--surface)"};
+               color:${c === currentCourse ? "var(--turf)" : "var(--ink)"};
+               font-size:13px;font-weight:600;cursor:pointer">${escHtml(c)}</button>`
+    ).join("");
+  }
+  function pickCourse(name) {
+    document.getElementById("course-input").value = name;
+    renderCourseChips();
+  }
+  function onCourseInput() { /* typing clears chip selection visually */ }
+  function confirmCourse() {
+    const val = document.getElementById("course-input").value.trim();
+    if (!val) return;
+    currentCourse = val;
+    localStorage.setItem("balltracker-course", currentCourse);
+    updateCoursePill();
+    closeCoursePicker();
+  }
+
   // ── Boot ──────────────────────────────────────────────────────
   document.addEventListener("DOMContentLoaded", () => {
+    updateCoursePill();
     loadBalls();
     loadStats();
     loadBagNames();
@@ -886,11 +962,48 @@
   }
 
   // ── Mark as Lost ──────────────────────────────────────────────
-  async function markAsLost() {
+  function markAsLost() {
     const ball = highlightedSlot === "second" ? selectedSecond : selected;
+    if (!ball || pending) return;
+    openHolePicker(ball);
+  }
+
+  function openHolePicker(ball) {
+    pendingLostBall = ball;
+    document.getElementById("hole-ball-label").textContent = `${ball.brand} ${ball.model}`;
+    // Render front 9
+    const front = document.getElementById("hole-grid-front");
+    const back  = document.getElementById("hole-grid-back");
+    front.innerHTML = "";
+    back.innerHTML  = "";
+    for (let h = 1; h <= 18; h++) {
+      const btn = document.createElement("button");
+      btn.textContent = h;
+      btn.onclick = () => confirmMarkAsLost(h);
+      btn.style.cssText = `padding:10px 0;border-radius:10px;border:1.5px solid var(--border);
+        background:var(--surface);color:var(--ink);font-size:15px;font-weight:700;
+        cursor:pointer;transition:all 0.12s;-webkit-appearance:none;
+        ${h === lastSelectedHole ? "border-color:var(--turf-border);background:var(--turf-light);color:var(--turf);" : ""}`;
+      (h <= 9 ? front : back).appendChild(btn);
+    }
+    document.getElementById("overlay-hole").style.display = "block";
+    document.getElementById("modal-hole").style.display   = "block";
+  }
+
+  function closeHolePicker() {
+    document.getElementById("overlay-hole").style.display = "none";
+    document.getElementById("modal-hole").style.display   = "none";
+    pendingLostBall = null;
+  }
+
+  async function confirmMarkAsLost(hole) {
+    closeHolePicker();
+    lastSelectedHole = hole;
+    const ball = pendingLostBall;
     if (!ball || pending) return;
     pending = true;
     const { brand, model, colour } = ball;
+    const course = currentCourse;
     const btn = document.getElementById("btn-lost");
     btn.innerHTML = '<span class="spin"></span> Saving…';
     btn.disabled  = true;
@@ -900,16 +1013,15 @@
       highlightedSlot = "play";
       fillCard("second", null);
     } else {
-      promoteSecond(); // updateMarkAsLostLabel called inside setTimeout
+      promoteSecond();
     }
 
     try {
-      const res = await apiPost("markAsLost", { brand, model, colour });
-      showToast(res.success ? `${brand} ${model} — lost` : (res.message || "Something went wrong"), res.success ? "lost" : "err");
+      const res = await apiPost("markAsLost", { brand, model, colour, course, hole });
+      showToast(res.success ? `${brand} ${model} — lost on hole ${hole}` : (res.message || "Something went wrong"), res.success ? "lost" : "err");
     } catch(e) { showToast("Failed to save — try again", "err"); }
 
     pending = false;
-    // Only update label here if we didn't call promoteSecond (which updates inside setTimeout)
     if (highlightedSlot === "play" && !selectedSecond) updateMarkAsLostLabel();
     cachedLostBalls = null;
     loadBalls(); loadStats(); loadLostBalls();
@@ -952,7 +1064,7 @@
           ${ballWithLogo(b.brand, b.colour, 40)}
           <div style="min-width:0">
             <div class="restore-name" style="font-size:16px">${escHtml(b.brand)} ${escHtml(b.model)}</div>
-            <div class="restore-time">${formatLostLabel(b.timeLabel)}</div>
+            <div class="restore-time">${formatLostLabel(b)}</div>
           </div>
         </div>
         <button onclick="restoreBall(${b.rowIndex},'${escAttr(b.brand)}','${escAttr(b.model)}')"
@@ -985,15 +1097,20 @@
     for (const b of balls) {
       const d = new Date(b.ts);
       const dateKey = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-      const timeStr = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
       if (!groups[dateKey]) groups[dateKey] = { ts: b.ts, balls: [] };
-      groups[dateKey].balls.push({ ...b, timeStr });
+      groups[dateKey].balls.push({ ...b });
     }
 
     body.innerHTML = Object.entries(groups)
       .sort((a, b) => b[1].ts - a[1].ts)
       .map(([date, group]) => {
-        const sorted = [...group.balls].sort((a, b) => b.ts - a.ts);
+        // Sort by hole number ascending; nulls go at the end
+        const sorted = [...group.balls].sort((a, b) => {
+          if (a.hole == null && b.hole == null) return 0;
+          if (a.hole == null) return 1;
+          if (b.hole == null) return -1;
+          return a.hole - b.hole;
+        });
         return `
       <div style="border-bottom:1px solid var(--border-light)">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px 6px">
@@ -1002,7 +1119,7 @@
         </div>
         ${sorted.map(b => `
           <div style="display:flex;align-items:center;gap:12px;padding:8px 20px">
-            <span style="font-size:13px;color:var(--muted);flex-shrink:0;width:38px">${escHtml(b.timeStr)}</span>
+            <span style="font-size:13px;color:var(--muted);flex-shrink:0;min-width:46px">${b.hole != null ? "H" + escHtml(String(b.hole)) : "–"}</span>
             ${ballWithLogo(b.brand, b.colour, 38)}
             <span style="font-size:15px;font-weight:600;color:var(--ink);flex:1">${escHtml(b.brand)} ${escHtml(b.model)}</span>
           </div>`).join("")}
