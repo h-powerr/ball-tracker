@@ -1,4 +1,4 @@
-l<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
@@ -41,28 +41,26 @@ l<!DOCTYPE html>
       --dd-hover:    #1f1212;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    html { height: 100%; height: -webkit-fill-available; font-size: 16px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; overflow: hidden; background: var(--pine); }
+    html { height: 100dvh; font-size: 16px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; overflow: hidden; background: var(--pine); }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg); color: var(--ink);
-      height: 100%; height: -webkit-fill-available;
-      min-height: 100vh; min-height: -webkit-fill-available;
-      overflow: hidden;
+      background: var(--pine); color: var(--ink);
+      height: 100dvh; overflow: hidden;
       transition: background 0.25s, color 0.25s;
     }
-    .app { width: 100%; height: 100%; height: -webkit-fill-available; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+    .app { width: 100%; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
 
     header {
       background: var(--pine); color: #fff;
       padding: 14px 16px;
       padding-top: max(14px, env(safe-area-inset-top));
-      display: flex; align-items: center; justify-content: space-between;
+      display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
       flex-shrink: 0; z-index: 10;
       transition: background 0.25s;
     }
     .header-left { display: flex; align-items: center; gap: 10px; }
     header h1 { font-size: 17px; font-weight: 800; letter-spacing: -0.3px; color: #fff; }
-    .header-right { display: flex; align-items: center; gap: 4px; }
+    .header-right { display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
     .btn-icon {
       background: none; border: none; color: rgba(255,255,255,0.6);
       font-size: 20px; cursor: pointer; padding: 6px; line-height: 1;
@@ -358,8 +356,8 @@ l<!DOCTYPE html>
 </head>
 <body>
 <div class="app">
-  <header style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center">
-    <div style="display:flex;align-items:center">
+  <header>
+    <div class="header-left">
       <img src="icon.png" style="width:28px;height:28px;border-radius:6px">
     </div>
     <button id="course-pill" onclick="openCoursePicker()"
@@ -369,7 +367,7 @@ l<!DOCTYPE html>
       <span id="course-pill-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Drax Golf Club</span>
       <span style="font-size:10px;opacity:0.6">▾</span>
     </button>
-    <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px">
+    <div class="header-right">
       <button class="btn-icon" id="btn-dark" onclick="toggleDark()" title="Toggle dark mode">🌙</button>
       <button class="btn-icon" onclick="loadBalls(); loadStats();" title="Refresh">↺</button>
     </div>
@@ -715,7 +713,6 @@ l<!DOCTYPE html>
   // Caches
   let cachedLostBalls     = null;
   let summaryColourFilter = null;
-  let summaryBagFilter = null;
   let pendingLostBall     = null;
   let lastSelectedHole    = null;
   let currentCourse       = localStorage.getItem("balltracker-course") || "Drax Golf Club";
@@ -1411,26 +1408,28 @@ l<!DOCTYPE html>
         .map(c => `<div class="colour-pill ${summaryColourFilter === c ? "active" : ""}" onclick="setSummaryFilter('${escAttr(c)}')">${ballEmoji(c)} ${colourTotals[c]}</div>`)
         .join("");
 
-    // Bag chips
+    // Bag totals chips (display only, no filter)
     const bagOrder = ["Pro V Bag","Other Titleist Bag","Callaway Bag","Good Bag","Yellow Bag","The Rest"];
-    const allBags = [...new Set(allBalls.map(b => b.bag).filter(Boolean))];
-    allBags.sort((a, b) => {
+    const bagTotals = {};
+    for (const b of allBalls) {
+      const bag = b.bag || "Unknown";
+      bagTotals[bag] = (bagTotals[bag] || 0) + b.count;
+    }
+    const sortedBags = Object.keys(bagTotals).sort((a, b) => {
       const ai = bagOrder.indexOf(a), bi = bagOrder.indexOf(b);
       if (ai === -1 && bi === -1) return a.localeCompare(b);
       if (ai === -1) return 1; if (bi === -1) return -1;
       return ai - bi;
     });
-    const bagChipsHtml = allBags.length > 1
+    const bagChipsHtml = sortedBags.length
       ? `<div class="colour-pills" style="margin-top:6px">` +
-        `<div class="colour-pill ${summaryBagFilter === null ? "active" : ""}" onclick="setSummaryBagFilter(null)">All Bags</div>` +
-        allBags.map(bg => `<div class="colour-pill ${summaryBagFilter === bg ? "active" : ""}" onclick="setSummaryBagFilter('${escAttr(bg)}')">${escHtml(bg)}</div>`).join("") +
+        sortedBags.map(bg => `<div class="colour-pill" style="cursor:default">${escHtml(bg)} · ${bagTotals[bg]}</div>`).join("") +
         `</div>`
       : "";
 
-    // Filtered balls
+    // Filtered balls (colour only)
     const filtered = allBalls.filter(b =>
-      (!summaryColourFilter || (b.colour || "White") === summaryColourFilter) &&
-      (!summaryBagFilter    || b.bag === summaryBagFilter)
+      (!summaryColourFilter || (b.colour || "White") === summaryColourFilter)
     );
 
     // Brand accordion
@@ -1462,10 +1461,6 @@ l<!DOCTYPE html>
   }
   function setSummaryFilter(colour) {
     summaryColourFilter = colour;
-    renderSummary(allBalls);
-  }
-  function setSummaryBagFilter(bag) {
-    summaryBagFilter = bag;
     renderSummary(allBalls);
   }
   function toggleAccordion(idx) {
