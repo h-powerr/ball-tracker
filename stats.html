@@ -1,1 +1,444 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#111111" id="theme-color-meta">
+  <meta name="color-scheme" content="light only">
+  <meta name="supported-color-schemes" content="light">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Ball Tracker — Stats</title>
+  <link rel="apple-touch-icon" href="icon.png">
+  <style>
+    :root {
+      --pine:        #111111;
+      --turf:        #e3000f;
+      --turf-light:  #fff0f0;
+      --turf-border: #e3000f;
+      --bg:          #f8f7f4;
+      --surface:     #ffffff;
+      --ink:         #111827;
+      --muted:       #6b7280;
+      --border:      #e5e7eb;
+      --border-light:#f3f4f6;
+      --radius:      14px;
+    }
+    [data-theme="dark"] {
+      --pine:        #111111;
+      --turf:        #ff4444;
+      --turf-light:  #1a0a0a;
+      --turf-border: #ff4444;
+      --bg:          #111111;
+      --surface:     #1c1c1c;
+      --ink:         #f5f5f5;
+      --muted:       #a0a0a0;
+      --border:      #2e2e2e;
+      --border-light:#222222;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html { height: 100%; font-size: 16px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; overflow: hidden; background: var(--bg); }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); height: 100%; overflow: hidden; transition: background 0.25s, color 0.25s; }
+    .app { width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+    header { background: var(--pine); color: #fff; padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top)); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; z-index: 10; }
+    .header-left { display: flex; align-items: center; gap: 8px; }
+    .header-right { display: flex; align-items: center; gap: 4px; }
+    .btn-icon { background: none; border: none; color: rgba(255,255,255,0.6); font-size: 20px; cursor: pointer; padding: 6px; line-height: 1; border-radius: 8px; transition: color 0.15s; }
+    .btn-icon:active { color: white; background: rgba(255,255,255,0.1); }
+    .btn-back { background: rgba(255,255,255,0.12); border: none; border-radius: 20px; padding: 5px 12px; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+    .btn-back:active { background: rgba(255,255,255,0.22); }
+    .course-pill { background: rgba(255,255,255,0.12); border: none; border-radius: 20px; padding: 5px 12px; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; max-width: 180px; }
+    .course-pill:active { background: rgba(255,255,255,0.22); }
+    main { padding: 14px 16px; padding-bottom: max(32px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 16px; width: 100%; flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .section-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px; }
+    .stats-bar { display: flex; gap: 10px; width: 100%; }
+    .stat-card { flex: 1; background: var(--surface); border-radius: var(--radius); padding: 12px 14px; border: 1px solid var(--border); min-width: 0; transition: background 0.25s; }
+    .stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 4px; }
+    .stat-value { font-size: 18px; font-weight: 800; color: var(--ink); line-height: 1.1; }
+    .stat-value small { font-size: 11px; font-weight: 600; color: var(--muted); display: block; margin-top: 2px; }
+    .stat-value.loading { color: var(--border); font-size: 14px; font-weight: 400; }
+    /* Bar chart */
+    .barchart-wrap { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
+    .barchart-scroll { display: flex; gap: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 16px 12px 12px; scroll-snap-type: x proximity; }
+    .barchart-scroll::-webkit-scrollbar { display: none; }
+    .bar-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; width: 36px; scroll-snap-align: start; }
+    .bar-outer { width: 22px; height: 100px; display: flex; flex-direction: column; justify-content: flex-end; }
+    .bar-inner { width: 100%; border-radius: 4px 4px 0 0; background: var(--pine); transition: height 0.3s ease; display: flex; align-items: flex-start; justify-content: center; min-height: 3px; }
+    .bar-inner.worst { background: var(--turf); }
+    .bar-num { font-size: 11px; font-weight: 800; color: #fff; padding-top: 3px; line-height: 1; }
+    .bar-num.outside { color: var(--ink); margin-top: 2px; }
+    .bar-hole { font-size: 11px; font-weight: 700; color: var(--muted); }
+    .scorecard-wrap { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
+    .scorecard-half-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 8px 12px 4px; background: var(--border-light); border-bottom: 1px solid var(--border); }
+    .scorecard-grid { display: grid; grid-template-columns: repeat(9, 1fr); }
+    .scorecard-divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+    .hole-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 2px; gap: 3px; border-right: 1px solid var(--border-light); min-height: 64px; }
+    .hole-cell:last-child { border-right: none; }
+    .hole-num { font-size: 11px; font-weight: 700; color: var(--muted); }
+    .hole-count { font-size: 20px; font-weight: 800; color: var(--ink); line-height: 1; }
+    .hole-count.zero { color: var(--border); font-size: 16px; font-weight: 400; }
+    .hole-count.worst { color: var(--turf); }
+    .hole-avg { font-size: 10px; font-weight: 600; color: var(--muted); }
+    .btn { width: 100%; padding: 14px 16px; border: none; border-radius: var(--radius); font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.15s; -webkit-appearance: none; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn:active { transform: scale(0.97); }
+    .btn-outline { background: transparent; color: var(--turf); border: 1.5px solid var(--turf-border); font-weight: 600; }
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 100; }
+    .overlay.open { display: block; }
+    .sheet { position: fixed; bottom: 0; left: 0; right: 0; transform: translateY(100%); background: var(--surface); border-radius: 20px 20px 0 0; z-index: 101; transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), background 0.25s; height: 85vh; display: flex; flex-direction: column; box-shadow: 0 -6px 30px rgba(0,0,0,0.2); padding-bottom: env(safe-area-inset-bottom); }
+    .sheet.open { transform: translateY(0); }
+    .sheet-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 12px auto 0; flex-shrink: 0; }
+    .sheet-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px 12px; border-bottom: 1px solid var(--border-light); flex-shrink: 0; }
+    .sheet-title { font-size: 17px; font-weight: 700; color: var(--ink); }
+    .sheet-close { background: none; border: none; font-size: 22px; color: var(--muted); cursor: pointer; line-height: 1; padding: 4px; }
+    .sheet-body { overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
+    .sheet-empty { padding: 40px 20px; text-align: center; color: var(--muted); }
+    .ball-logo { position: relative; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ball-logo img { position: absolute; object-fit: contain; }
+    .toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%) translateY(-14px); padding: 11px 20px; border-radius: 24px; font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; z-index: 200; opacity: 0; pointer-events: none; box-shadow: 0 4px 14px rgba(0,0,0,0.25); transition: opacity 0.25s ease, transform 0.25s ease; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.ok { background: var(--pine); }
+    .toast.err { background: #374151; }
+    .field-input { width: 100%; padding: 13px 14px; border: 1.5px solid var(--border); border-radius: var(--radius); font-size: 16px; color: var(--ink); background: var(--surface); outline: none; -webkit-appearance: none; transition: border-color 0.15s; }
+    .field-input:focus { border-color: var(--turf-border); }
+    .spin { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.1); border-top-color: var(--turf); border-radius: 50%; animation: spin 0.75s linear infinite; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="header-left">
+      <button class="btn-back" onclick="window.location.href='Index.html'">◀ Round</button>
+      <button class="course-pill" id="course-pill" onclick="openCoursePicker()">
+        <span style="font-size:11px;opacity:0.7">📍</span>
+        <span id="course-pill-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Drax Golf Club</span>
+        <span style="font-size:10px;opacity:0.6">▾</span>
+      </button>
+    </div>
+    <div class="header-right">
+      <button class="btn-icon" id="btn-dark" onclick="toggleDark()">🌙</button>
+      <button class="btn-icon" onclick="loadAll()">↺</button>
+    </div>
+  </header>
 
+  <main>
+    <!-- Worst Hole -->
+    <div>
+      <div class="section-label">Worst Hole</div>
+      <div class="stats-bar">
+        <div class="stat-card">
+          <div class="stat-label">Worst Hole</div>
+          <div class="stat-value loading" id="stat-worst-hole">–</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Worst Hole Avg/r</div>
+          <div class="stat-value loading" id="stat-worst-avg">–</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Rounds Tracked</div>
+          <div class="stat-value loading" id="stat-rounds">–</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scorecard -->
+    <div>
+      <div class="section-label">Avg Balls Lost Per Hole Per Round</div>
+      <div class="scorecard-wrap">
+        <div class="scorecard-half-label">Front 9</div>
+        <div class="scorecard-grid" id="scorecard-front">
+          <div class="hole-cell" style="grid-column:span 9;padding:20px;justify-content:center"><span class="spin"></span></div>
+        </div>
+        <hr class="scorecard-divider">
+        <div class="scorecard-half-label">Back 9</div>
+        <div class="scorecard-grid" id="scorecard-back">
+          <div class="hole-cell" style="grid-column:span 9;padding:20px;justify-content:center"><span class="spin"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total Losses Bar Chart -->
+    <div>
+      <div class="section-label">Total Balls Lost Per Hole</div>
+      <div class="barchart-wrap">
+        <div class="barchart-scroll" id="barchart-scroll">
+          <div style="padding:20px;color:var(--muted);font-size:14px"><span class="spin"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Round History -->
+    <button class="btn btn-outline" onclick="openHistory()">📋&nbsp; Round History</button>
+  </main>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeAll()"></div>
+
+<!-- Round History sheet -->
+<div class="sheet" id="sheet-history">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title">Round History</span>
+    <button class="sheet-close" onclick="closeAll()">✕</button>
+  </div>
+  <div class="sheet-body" id="body-history">
+    <div class="sheet-empty">Loading…</div>
+  </div>
+</div>
+
+<!-- Course picker -->
+<div class="overlay" id="overlay-course" onclick="closeCoursePicker()" style="z-index:200"></div>
+<div id="modal-course" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:201;background:var(--surface);border-radius:20px 20px 0 0;padding:20px 16px;padding-bottom:max(20px,env(safe-area-inset-bottom));box-shadow:0 -6px 30px rgba(0,0,0,0.2)">
+  <div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px"></div>
+  <div style="font-size:17px;font-weight:700;color:var(--ink);margin-bottom:14px">Change Course</div>
+  <div id="course-chips-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
+  <input type="text" id="course-input" class="field-input" placeholder="Type a new course…" autocomplete="off" autocorrect="off" spellcheck="false" style="margin-bottom:14px">
+  <button onclick="confirmCourse()" style="width:100%;padding:14px;border-radius:var(--radius);background:var(--pine);color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer">Set Course</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const API = "https://script.google.com/macros/s/AKfycbxmQvGApPfL2yxpcd3OMJRogzwmZ0PBxuTIhD3tFzqUZUXlpPcO7oKavoi1jkGuOGTQ/exec";
+
+  async function apiGet(action, params) {
+    const url = new URL(API);
+    url.searchParams.set("action", action);
+    if (params) Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+    return (await fetch(url.toString())).json();
+  }
+
+  let currentCourse   = localStorage.getItem("balltracker-course") || "Drax Golf Club";
+  let knownCourses    = [];
+  let cachedLostBalls = null;
+  let toastTimer;
+
+  (function() {
+    if (localStorage.getItem("balltracker-theme-v2") === "dark") applyTheme("dark");
+  })();
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    const btn = document.getElementById("btn-dark");
+    if (btn) btn.textContent = theme === "dark" ? "☀️" : "🌙";
+  }
+  function toggleDark() {
+    const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    applyTheme(next);
+    localStorage.setItem("balltracker-theme-v2", next);
+  }
+
+  function ballEmoji(colour) {
+    const c = (colour || "white").toLowerCase().trim();
+    if (c === "yellow") return "🟡";
+    if (c === "orange") return "🟠";
+    if (c === "red")    return "🔴";
+    if (c === "pink")   return "🩷";
+    if (c === "blue")   return "🔵";
+    if (c === "green")  return "🟢";
+    if (c === "purple") return "🟣";
+    if (c === "black")  return "⚫";
+    return "⚪";
+  }
+  function ballWithLogo(brand, colour, size) {
+    const logoName = (brand || "").replace(/\s+/g, "");
+    const logoSize = Math.round(size * 0.70);
+    return `<span class="ball-logo" style="font-size:${size}px;width:${size}px;height:${size}px">
+      ${ballEmoji(colour)}
+      <img src="logos/${logoName}.png" style="width:${logoSize}px;height:${logoSize}px;object-fit:contain;position:absolute" onerror="this.style.display='none'">
+    </span>`;
+  }
+  function escHtml(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  function escAttr(s) { return String(s).replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+  function showToast(msg, type) {
+    clearTimeout(toastTimer);
+    const t = document.getElementById("toast");
+    t.textContent = msg; t.className = `toast ${type} show`;
+    toastTimer = setTimeout(() => t.classList.remove("show"), 3000);
+  }
+
+  function updateCoursePill() {
+    document.getElementById("course-pill-label").textContent = currentCourse;
+  }
+  async function openCoursePicker() {
+    document.getElementById("course-input").value = "";
+    renderCourseChips();
+    document.getElementById("overlay-course").style.display = "block";
+    document.getElementById("modal-course").style.display   = "block";
+    try { knownCourses = await apiGet("getCourseNames"); renderCourseChips(); } catch(e) {}
+  }
+  function closeCoursePicker() {
+    document.getElementById("overlay-course").style.display = "none";
+    document.getElementById("modal-course").style.display   = "none";
+  }
+  function renderCourseChips() {
+    const wrap = document.getElementById("course-chips-list");
+    const courses = knownCourses.length ? knownCourses : ["Drax Golf Club"];
+    wrap.innerHTML = courses.map(c =>
+      `<button onclick="pickCourse('${escAttr(c)}')"
+        style="padding:6px 14px;border-radius:20px;
+               border:1.5px solid ${c === currentCourse ? "var(--turf-border)" : "var(--border)"};
+               background:${c === currentCourse ? "var(--turf-light)" : "var(--surface)"};
+               color:${c === currentCourse ? "var(--turf)" : "var(--ink)"};
+               font-size:13px;font-weight:600;cursor:pointer">${escHtml(c)}</button>`
+    ).join("");
+  }
+  function pickCourse(name) { document.getElementById("course-input").value = name; }
+  function confirmCourse() {
+    const val = document.getElementById("course-input").value.trim();
+    if (!val) return;
+    currentCourse = val;
+    localStorage.setItem("balltracker-course", currentCourse);
+    updateCoursePill();
+    closeCoursePicker();
+    cachedLostBalls = null;
+    loadAll();
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    updateCoursePill();
+    loadAll();
+  });
+
+  function loadAll() {
+    loadHoleStats();
+    loadLostBalls();
+  }
+
+  async function loadHoleStats() {
+    ["stat-worst-hole","stat-worst-avg","stat-rounds"].forEach(id => {
+      const el = document.getElementById(id);
+      el.className = "stat-value loading"; el.textContent = "–";
+    });
+    try {
+      const data = await apiGet("getHoleStats", { course: currentCourse });
+      renderHoleStats(data);
+    } catch(e) {
+      document.getElementById("stat-worst-hole").textContent = "Error";
+      showToast("Failed to load stats", "err");
+    }
+  }
+
+  function renderHoleStats(data) {
+    const { holes, worstHole, numRounds } = data;
+
+    const wh = document.getElementById("stat-worst-hole");
+    const wa = document.getElementById("stat-worst-avg");
+    const sr = document.getElementById("stat-rounds");
+    wh.className = "stat-value";
+    wa.className = "stat-value";
+    sr.className = "stat-value";
+
+    if (worstHole) {
+      wh.innerHTML = `Hole ${worstHole.hole}<small>${worstHole.total} balls lost total</small>`;
+      wa.textContent = worstHole.avg.toFixed(2) + " / round";
+    } else {
+      wh.textContent = "None yet";
+      wa.textContent = "–";
+    }
+    sr.textContent = numRounds || 0;
+
+    // Scorecard: show AVG per round per hole
+    function renderHalf(start, end, containerId) {
+      const half = holes.filter(h => h.hole >= start && h.hole <= end);
+      document.getElementById(containerId).innerHTML = half.map(h => {
+        const isWorst = worstHole && h.hole === worstHole.hole && h.total > 0;
+        const displayVal = h.total === 0 ? "·" : h.avg.toFixed(2);
+        const countClass = h.total === 0 ? "zero" : isWorst ? "worst" : "";
+        return `
+          <div class="hole-cell" style="${isWorst ? "background:var(--turf-light);" : ""}">
+            <span class="hole-num" style="${isWorst ? "color:var(--turf);" : ""}">H${h.hole}</span>
+            <span class="hole-count ${countClass}" style="font-size:${h.total === 0 ? "16px" : "15px"}">${displayVal}</span>
+            <span class="hole-avg" style="${h.total === 0 ? "opacity:0" : ""}">${h.total > 0 ? h.total + " total" : ""}</span>
+          </div>`;
+      }).join("");
+    }
+
+    renderHalf(1,  9,  "scorecard-front");
+    renderHalf(10, 18, "scorecard-back");
+
+    // Bar chart: show TOTAL balls lost per hole
+    const maxTotal = Math.max(...holes.map(h => h.total), 1);
+    const barHeight = 100; // px total bar area height
+    document.getElementById("barchart-scroll").innerHTML = holes.map(h => {
+      const isWorst = worstHole && h.hole === worstHole.hole && h.total > 0;
+      const pct = h.total / maxTotal;
+      const px  = Math.max(Math.round(pct * barHeight), h.total > 0 ? 20 : 3);
+      const showNumInside = px >= 22;
+      return `
+        <div class="bar-col">
+          <div class="bar-outer">
+            <div class="bar-inner${isWorst ? " worst" : ""}" style="height:${px}px">
+              ${showNumInside && h.total > 0 ? `<span class="bar-num">${h.total}</span>` : ""}
+            </div>
+          </div>
+          ${!showNumInside && h.total > 0 ? `<span class="bar-num outside">${h.total}</span>` : `<span class="bar-num outside" style="opacity:0">0</span>`}
+          <span class="bar-hole">H${h.hole}</span>
+        </div>`;
+    }).join("");
+  }
+
+  async function loadLostBalls() {
+    try { cachedLostBalls = await apiGet("getRecentLost", { n: 1000 }); }
+    catch(e) {}
+  }
+
+  async function openHistory() {
+    document.getElementById("overlay").classList.add("open");
+    document.getElementById("sheet-history").classList.add("open");
+    const body = document.getElementById("body-history");
+    if (cachedLostBalls !== null) {
+      renderHistory(cachedLostBalls);
+    } else {
+      body.innerHTML = '<div style="padding:30px;text-align:center"><span class="spin"></span></div>';
+      try {
+        cachedLostBalls = await apiGet("getRecentLost", { n: 1000 });
+        renderHistory(cachedLostBalls);
+      } catch(e) { body.innerHTML = '<div class="sheet-empty">⚠️ Failed to load</div>'; }
+    }
+  }
+
+  function renderHistory(balls) {
+    const filtered = balls.filter(b => !b.course || b.course.toLowerCase() === currentCourse.toLowerCase());
+    const body = document.getElementById("body-history");
+    if (!filtered.length) {
+      body.innerHTML = `<div class="sheet-empty">No losses recorded for ${escHtml(currentCourse)}</div>`;
+      return;
+    }
+    const groups = {};
+    for (const b of filtered) {
+      const d = new Date(b.ts);
+      const dateKey = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      if (!groups[dateKey]) groups[dateKey] = { ts: b.ts, balls: [] };
+      groups[dateKey].balls.push({ ...b });
+    }
+    body.innerHTML = Object.entries(groups)
+      .sort((a, b) => b[1].ts - a[1].ts)
+      .map(([date, group]) => {
+        const sorted = [...group.balls].sort((a, b) => {
+          if (a.hole == null && b.hole == null) return 0;
+          if (a.hole == null) return 1;
+          if (b.hole == null) return -1;
+          return a.hole - b.hole;
+        });
+        return `
+        <div style="border-bottom:1px solid var(--border-light)">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px 6px">
+            <span style="font-size:14px;font-weight:700;color:var(--ink)">${escHtml(date)}</span>
+            <span style="font-size:12px;font-weight:700;background:var(--border);color:var(--ink);padding:2px 8px;border-radius:20px">${sorted.length} lost</span>
+          </div>
+          ${sorted.map(b => `
+            <div style="display:flex;align-items:center;gap:12px;padding:8px 20px">
+              <span style="font-size:13px;font-weight:700;color:var(--muted);flex-shrink:0;min-width:40px">${b.hole != null ? "H"+escHtml(String(b.hole)) : "–"}</span>
+              ${ballWithLogo(b.brand, b.colour, 38)}
+              <span style="font-size:15px;font-weight:600;color:var(--ink);flex:1">${escHtml(b.brand)} ${escHtml(b.model)}</span>
+            </div>`).join("")}
+        </div>`;
+      }).join("");
+  }
+
+  function closeAll() {
+    document.getElementById("overlay").classList.remove("open");
+    document.getElementById("sheet-history").classList.remove("open");
+  }
+</script>
+</body>
+</html>
