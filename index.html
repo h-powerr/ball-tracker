@@ -108,7 +108,9 @@
     .ball-icon img { width: 34px; height: 34px; object-fit: contain; position: absolute; }
     .ball-logo { position: relative; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 50%; overflow: hidden; }
     .ball-logo .ball-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
-    .ball-logo .logo-img { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); object-fit: contain; }
+    .ball-logo .logo-img { position: absolute; top: 50%; object-fit: contain; transform: translateY(-50%); }
+    .ball-logo .logo-img.spinning { animation: none; }
+    .ball-logo .ball-shine { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 34% 28%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 55%); pointer-events: none; z-index: 10; }
     .empty-label { color: var(--muted); font-size: 15px; opacity: 0.6; }
     .change-btn {
       width: 100%; padding: 9px; border-radius: 10px;
@@ -771,17 +773,47 @@
   }
   function ballKey(b) { return b ? `${b.brand}||${b.model}||${b.colour}||${b.bag||""}` : null; }
 
-  // Renders a ball image with brand logo overlaid. size = px.
-  function ballWithLogo(brand, colour, size) {
-    const logoName = (brand || "").replace(/\s+/g, "");
+  // Renders a ball image with brand logo overlaid. size = px. spinning = true for selected balls.
+  function ballWithLogo(brand, colour, size, spinning = false) {
+    const logoName   = (brand || "").replace(/\s+/g, "");
     const colourName = ((colour || "white").trim().charAt(0).toUpperCase() + (colour || "white").trim().slice(1).toLowerCase());
-    const logoSize = Math.round(size * 0.50);
-    return `<span class="ball-logo" style="width:${size}px;height:${size}px">
+    const logoH      = Math.round(size * 0.40);
+    const id         = spinning ? `spin-${Date.now()}-${Math.random().toString(36).slice(2,6)}` : null;
+    const logoEl     = `<img class="logo-img${spinning ? " spinning" : ""}"${id ? ` id="${id}"` : ""} src="logos/${logoName}.png" style="height:${logoH}px;top:50%" onerror="this.style.display='none'">`;
+    const el = `<span class="ball-logo" style="width:${size}px;height:${size}px">
       <img class="ball-img" src="balls/${colourName}.png" onerror="this.style.display='none'">
-      <img class="logo-img" src="logos/${logoName}.png"
-        style="width:${logoSize}px;height:${logoSize}px"
-        onerror="this.style.display='none'">
+      ${logoEl}
+      <div class="ball-shine"></div>
     </span>`;
+    if (spinning && id) {
+      requestAnimationFrame(() => initSpinLogo(id, size));
+    }
+    return el;
+  }
+
+  function initSpinLogo(id, ballSize) {
+    const logo = document.getElementById(id);
+    if (!logo) return;
+    const shell = logo.closest('.ball-logo');
+    if (!shell) return;
+    let startTime = null;
+    const duration = 3000;
+
+    function tick(ts) {
+      if (!logo.isConnected) return;
+      if (!startTime) startTime = ts;
+      const progress = ((ts - startTime) % duration) / duration;
+      const rawX = (progress * ballSize * 2) - (ballSize * 0.5);
+      const logoW = logo.offsetWidth || ballSize * 0.55;
+      const logoCenter = rawX + logoW / 2 - ballSize / 2;
+      const norm = logoCenter / (ballSize / 2);
+      const scaleX = Math.max(0, Math.sqrt(1 - norm * norm));
+      logo.style.left = rawX + 'px';
+      logo.style.transform = `translateY(-50%) scaleX(${scaleX.toFixed(4)})`;
+      logo.style.transformOrigin = 'left center';
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
   }
   function formatLostLabel(b) {
     if (!b) return "Lost";
@@ -1013,7 +1045,7 @@
       card.className = `in-play-card${isPlay ? "" : " second"} filled`;
       if (animate) card.classList.add("promote-animate");
       icon.className = "ball-icon filled";
-      icon.innerHTML = ballWithLogo(ball.brand, ball.colour, 44);
+      icon.innerHTML = ballWithLogo(ball.brand, ball.colour, 44, true);
       const lbl = document.getElementById(labelId);
       if (lbl) lbl.outerHTML = `<div id="${labelId}">
         <div style="font-size:${isPlay?"16px":"14px"};font-weight:800;line-height:1.2;color:var(--ink)">${escHtml(ball.model)}</div>
