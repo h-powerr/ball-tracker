@@ -105,10 +105,11 @@
     }
     .ball-icon.empty  { border: 2px dashed var(--border); color: var(--border); font-size: 22px; }
     .ball-icon.filled { font-size: 44px; }
+    .ball-icon.filled canvas { box-shadow: 0 0 0 1px rgba(0,0,0,0.15); border-radius: 50%; }
     .ball-icon img { width: 34px; height: 34px; object-fit: contain; position: absolute; }
-    .ball-logo { position: relative; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 50%; overflow: hidden; }
-    .ball-logo .ball-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
-    .ball-logo .logo-img { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); object-fit: contain; }
+    .ball-logo { position: relative; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 1px rgba(0,0,0,0.15); }
+    .ball-logo .ball-img { position: absolute; inset: 0; pointer-events: none; border-radius: 50%; }
+    .ball-logo .logo-img { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); object-fit: contain; pointer-events: none; }
     .empty-label { color: var(--muted); font-size: 15px; opacity: 0.6; }
     .change-btn {
       width: 100%; padding: 9px; border-radius: 10px;
@@ -738,7 +739,6 @@
   // ── Dark mode ─────────────────────────────────────────────────
   (function() {
     if (localStorage.getItem("balltracker-theme-v2") === "dark") applyTheme("dark");
-    if (localStorage.getItem("balltracker-spin") === "0") { spinEnabled = false; document.getElementById("btn-spin").style.opacity = "0.4"; }
   })();
   function applyTheme(theme) {
     document.documentElement.setAttribute("data-theme", theme);
@@ -775,7 +775,7 @@
 
   // Renders a ball image with brand logo overlaid. size = px.
   // ── Ball spin state ─────────────────────────────────────────
-  let spinEnabled = true;
+  let spinEnabled = localStorage.getItem('balltracker-spin') !== '0';
   let spinOffset  = 0;
   let spinRaf     = null;
   const SPIN_SPEED    = 1.6;
@@ -825,10 +825,15 @@
     ctx.fillStyle = baseColour;
     ctx.fillRect(0, 0, size, size);
     if (dimpleImg && dimpleImg.complete && dimpleImg.naturalWidth) {
-      const texH = size;
-      const texW = Math.round(dimpleImg.naturalWidth * (texH / dimpleImg.naturalHeight));
-      const scrollX = spinOffset % texW;
-      for (let x = scrollX - texW; x < size; x += texW) ctx.drawImage(dimpleImg, x, 0, texW, texH);
+      // Crop texture to a square from the centre so it fills the ball without letterboxing
+      const iw = dimpleImg.naturalWidth, ih = dimpleImg.naturalHeight;
+      const cropSize = Math.min(iw, ih);
+      const sx = (iw - cropSize) / 2, sy = (ih - cropSize) / 2;
+      // Tile the cropped square horizontally, scrolling with spinOffset
+      const scrollX = spinOffset % size;
+      for (let x = scrollX - size; x < size; x += size) {
+        ctx.drawImage(dimpleImg, sx, sy, cropSize, cropSize, x, 0, size, size);
+      }
     }
     const vignette = ctx.createRadialGradient(cx,cx,r*0.5,cx,cx,r);
     vignette.addColorStop(0,'rgba(0,0,0,0)');
@@ -847,7 +852,7 @@
         const sf   = 1 - norm*norm;
         if (sf <= 0) return;
         const scaleX   = Math.sqrt(sf);
-        const logoH    = size * 0.36;
+        const logoH    = size * 0.55;
         const aspect   = logoImg.naturalWidth / logoImg.naturalHeight;
         const apparent = logoH * aspect * scaleX;
         if (apparent < 1) return;
@@ -871,8 +876,10 @@
     ctx.fillStyle = baseColour;
     ctx.fillRect(0, 0, size, size);
     if (dimpleImg && dimpleImg.complete && dimpleImg.naturalWidth) {
-      const texH = size, texW = Math.round(dimpleImg.naturalWidth * (texH / dimpleImg.naturalHeight));
-      ctx.drawImage(dimpleImg, 0, 0, texW, texH);
+      const iw = dimpleImg.naturalWidth, ih = dimpleImg.naturalHeight;
+      const cropSize = Math.min(iw, ih);
+      const sx = (iw - cropSize) / 2, sy = (ih - cropSize) / 2;
+      ctx.drawImage(dimpleImg, sx, sy, cropSize, cropSize, 0, 0, size, size);
     }
     const vignette = ctx.createRadialGradient(cx,cx,r*0.5,cx,cx,r);
     vignette.addColorStop(0,'rgba(0,0,0,0)');
@@ -885,11 +892,13 @@
     shine.addColorStop(1,'rgba(255,255,255,0)');
     ctx.fillStyle = shine; ctx.fillRect(0,0,size,size);
     if (logoImg && logoImg.complete && logoImg.naturalWidth) {
-      const logoH  = size * 0.95;
-      const aspect = logoImg.naturalWidth / logoImg.naturalHeight;
-      const logoW  = Math.min(logoH * aspect, size * 0.95);
-      const lh     = logoW / aspect;
-      ctx.drawImage(logoImg, cx - logoW/2, cx - lh/2, logoW, lh);
+      // Match spinning logo size for consistency
+      const targetH = size * 0.55;
+      const aspect  = logoImg.naturalWidth / logoImg.naturalHeight;
+      // Choose dimension that fits — landscape logos constrained by width, square by height
+      let logoW = targetH * aspect, logoH = targetH;
+      if (logoW > size * 0.80) { logoW = size * 0.80; logoH = logoW / aspect; }
+      ctx.drawImage(logoImg, cx - logoW/2, cx - logoH/2, logoW, logoH);
     } else if (logoImg) {
       logoImg.onload = () => drawStaticFrame(b);
     }
@@ -923,7 +932,7 @@
     const logoName = (brand || "").replace(/\s+/g, "");
     const logoSize = Math.round(size * 0.65);
     return `<span class="ball-logo" style="width:${size}px;height:${size}px">
-      <img class="ball-img" src="balls/${colourName}Dimples.png" onerror="this.style.display='none'">
+      <div class="ball-img" style="background-image:url('balls/${colourName}Dimples.png');background-size:300% auto;background-position:center;background-repeat:no-repeat"></div>
       <img class="logo-img" src="logos/${logoName}.png"
         style="width:${logoSize}px;height:${logoSize}px"
         onerror="this.style.display='none'">
@@ -1013,6 +1022,10 @@
 
   // ── Boot ──────────────────────────────────────────────────────
   document.addEventListener("DOMContentLoaded", () => {
+    if (!spinEnabled) {
+      const btn = document.getElementById('btn-spin');
+      if (btn) btn.style.opacity = '0.4';
+    }
     updateCoursePill();
     loadBalls();
     loadStats();
