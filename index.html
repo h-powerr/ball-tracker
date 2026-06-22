@@ -788,6 +788,11 @@
     spinEnabled = !spinEnabled;
     document.getElementById('btn-spin').style.opacity = spinEnabled ? '1' : '0.4';
     localStorage.setItem('balltracker-spin', spinEnabled ? '1' : '0');
+    if (!spinEnabled) {
+      // Clear spin canvases and draw static frames
+      Object.values(spinCanvases).forEach(b => drawStaticFrame(b));
+      for (const k in spinCanvases) delete spinCanvases[k];
+    }
     fillCard('play',   selected,       false);
     fillCard('second', selectedSecond, false);
   }
@@ -855,13 +860,49 @@
     ctx.restore();
   }
 
+  function drawStaticFrame(b) {
+    const { ctx, logoImg, dimpleImg, baseColour, size } = b;
+    const cx = size/2, r = size/2 - 1;
+    ctx.clearRect(0, 0, size, size);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cx, r, 0, Math.PI*2);
+    ctx.clip();
+    ctx.fillStyle = baseColour;
+    ctx.fillRect(0, 0, size, size);
+    if (dimpleImg && dimpleImg.complete && dimpleImg.naturalWidth) {
+      const texH = size, texW = Math.round(dimpleImg.naturalWidth * (texH / dimpleImg.naturalHeight));
+      ctx.drawImage(dimpleImg, 0, 0, texW, texH);
+    }
+    const vignette = ctx.createRadialGradient(cx,cx,r*0.5,cx,cx,r);
+    vignette.addColorStop(0,'rgba(0,0,0,0)');
+    vignette.addColorStop(0.7,'rgba(0,0,0,0.06)');
+    vignette.addColorStop(1,'rgba(0,0,0,0.4)');
+    ctx.fillStyle = vignette; ctx.fillRect(0,0,size,size);
+    const shine = ctx.createRadialGradient(cx-r*0.3,cx-r*0.35,0,cx-r*0.1,cx-r*0.1,r*0.75);
+    shine.addColorStop(0,'rgba(255,255,255,0.75)');
+    shine.addColorStop(0.3,'rgba(255,255,255,0.18)');
+    shine.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle = shine; ctx.fillRect(0,0,size,size);
+    if (logoImg && logoImg.complete && logoImg.naturalWidth) {
+      const logoH  = size * 0.95;
+      const aspect = logoImg.naturalWidth / logoImg.naturalHeight;
+      const logoW  = Math.min(logoH * aspect, size * 0.95);
+      const lh     = logoW / aspect;
+      ctx.drawImage(logoImg, cx - logoW/2, cx - lh/2, logoW, lh);
+    } else if (logoImg) {
+      logoImg.onload = () => drawStaticFrame(b);
+    }
+    ctx.restore();
+  }
+
   const BALL_BASE_COLOURS = {
     white: '#f0f0f0', yellow: '#c89000', orange: '#c05000', red: '#b00000'
   };
 
   const dimpleImgCache = {};
   ['White','Yellow','Orange','Red'].forEach(c => {
-    const img = new Image(); img.src = `dimples/${c}.png`;
+    const img = new Image(); img.src = `balls/${c}Dimples.png`;
     dimpleImgCache[c.toLowerCase()] = img;
   });
 
@@ -873,14 +914,16 @@
   }
 
   function ballWithLogo(brand, colour, size, canvasId = null) {
-    const logoName   = (brand || "").replace(/\s+/g, "");
     const colourName = ((colour || "white").trim().charAt(0).toUpperCase() + (colour || "white").trim().slice(1).toLowerCase());
-    const logoSize   = Math.round(size * 0.65);
-    if (spinEnabled && canvasId) {
+    // Always use canvas for selected balls — handles both spin on/off and retina correctly
+    if (canvasId) {
       return `<canvas id="${canvasId}" width="${size}" height="${size}" style="border-radius:50%;display:block"></canvas>`;
     }
+    // Static display (stock list, history) — use dimple texture
+    const logoName = (brand || "").replace(/\s+/g, "");
+    const logoSize = Math.round(size * 0.65);
     return `<span class="ball-logo" style="width:${size}px;height:${size}px">
-      <img class="ball-img" src="balls/${colourName}.png" onerror="this.style.display='none'">
+      <img class="ball-img" src="balls/${colourName}Dimples.png" onerror="this.style.display='none'">
       <img class="logo-img" src="logos/${logoName}.png"
         style="width:${logoSize}px;height:${logoSize}px"
         onerror="this.style.display='none'">
@@ -1119,17 +1162,31 @@
       const cId = 'spin-' + (isPlay ? 'play' : 'second');
       delete spinCanvases[cId];
       icon.innerHTML = ballWithLogo(ball.brand, ball.colour, 44, cId);
-      if (spinEnabled && document.getElementById(cId)) {
+      const canvasEl = document.getElementById(cId);
+      if (canvasEl) {
         const colourKey = (ball.colour || 'white').toLowerCase();
-        spinCanvases[cId] = {
-          id: cId,
-          ctx:        document.getElementById(cId).getContext('2d'),
+        // Retina fix — scale canvas by devicePixelRatio
+        const dpr = window.devicePixelRatio || 1;
+        canvasEl.width  = 44 * dpr;
+        canvasEl.height = 44 * dpr;
+        canvasEl.style.width  = '44px';
+        canvasEl.style.height = '44px';
+        const ctx = canvasEl.getContext('2d');
+        ctx.scale(dpr, dpr);
+        const entry = {
+          id: cId, ctx,
           logoImg:    getLogoImg(ball.brand),
           dimpleImg:  dimpleImgCache[colourKey],
           baseColour: BALL_BASE_COLOURS[colourKey] || '#f0f0f0',
-          size:       44,
+          size: 44,
         };
-        initSpinLoop();
+        if (spinEnabled) {
+          spinCanvases[cId] = entry;
+          initSpinLoop();
+        } else {
+          // Draw a single static frame — centred logo, no animation
+          drawStaticFrame(entry);
+        }
       }
       const lbl = document.getElementById(labelId);
       if (lbl) lbl.outerHTML = `<div id="${labelId}">
