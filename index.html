@@ -579,14 +579,13 @@
       </div>
       <div>
         <div class="field-label">Bag</div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px" id="bag-grid">
-          <button class="brand-btn" data-bag="Cool Bag"           onclick="selectBag(this)">Cool</button>
-          <button class="brand-btn" data-bag="Pro V Bag"          onclick="selectBag(this)">Pro Vs</button>
-          <button class="brand-btn" data-bag="Other Titleist Bag" onclick="selectBag(this)">Titleist</button>
-          <button class="brand-btn" data-bag="Callaway Bag"       onclick="selectBag(this)">Callaway</button>
-          <button class="brand-btn" data-bag="Good Bag"           onclick="selectBag(this)">Good</button>
-          <button class="brand-btn" data-bag="Yellow Bag"         onclick="selectBag(this)">Yellow</button>
-          <button class="brand-btn" data-bag="The Rest"           onclick="selectBag(this)" style="grid-column:span 2">Other</button>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px" id="bag-grid">
+          <button class="brand-btn" data-bag="Cool Bag"         onclick="selectBag(this)">Cool</button>
+          <button class="brand-btn" data-bag="Pro V Bag"        onclick="selectBag(this)">Pro Vs</button>
+          <button class="brand-btn" data-bag="Premium/Tour"     onclick="selectBag(this)">Premium</button>
+          <button class="brand-btn" data-bag="Solid Mid-Range"  onclick="selectBag(this)">Mid-Range</button>
+          <button class="brand-btn" data-bag="Budget"           onclick="selectBag(this)">Budget</button>
+          <button class="brand-btn" data-bag="Yellow Bag"       onclick="selectBag(this)">Yellow</button>
         </div>
       </div>
       <button class="btn-submit" id="btn-add-submit" onclick="submitAddBall()">＋&nbsp; Add to Stock</button>
@@ -913,11 +912,18 @@
     try { bagNames = await apiGet("getBagNames"); renderBagChips(); }
     catch(e) { /* silent */ }
   }
+  const BAG_ORDER = ["Cool Bag","Pro V Bag","Premium/Tour","Solid Mid-Range","Budget","Yellow Bag"];
   function renderBagChips() {
     const wrap = document.getElementById("bag-chips");
     if (!bagNames.length) { wrap.classList.remove("visible"); return; }
     wrap.classList.add("visible");
-    wrap.innerHTML = bagNames.map(b =>
+    const sorted = [...bagNames].sort((a, b) => {
+      const ai = BAG_ORDER.indexOf(a), bi = BAG_ORDER.indexOf(b);
+      if (ai === -1 && bi === -1) return a.localeCompare(b);
+      if (ai === -1) return 1; if (bi === -1) return -1;
+      return ai - bi;
+    });
+    wrap.innerHTML = sorted.map(b =>
       `<button class="filter-chip ${activeBagFilters.has(b) ? "active" : ""}"
         onclick="toggleBagFilter('${escAttr(b)}', event)">${escHtml(b)}</button>`
     ).join("");
@@ -1353,11 +1359,25 @@
     document.getElementById("qty-display").textContent = addQty;
   }
   function suggestBag(brand, model, colour) {
-    const b = (brand || "").toLowerCase(), m = (model || "").toLowerCase();
-    if (b === "titleist" && (m.includes("pro v1x") || m.includes("pro v1"))) return "Pro V Bag";
-    if (b === "titleist") return "Other Titleist Bag";
-    if (b === "callaway") return "Callaway Bag";
+    const b = (brand || "").toLowerCase().trim(), m = (model || "").toLowerCase().trim();
+    // 1. Yellow balls always go to the Yellow Bag (colour is unambiguous)
     if ((colour || "").toLowerCase() === "yellow") return "Yellow Bag";
+    // 2. Exact match already in stock → most-common bag for that ball
+    if (b && m) {
+      const bagCounts = {};
+      for (const ball of allBalls) {
+        if ((ball.brand || "").toLowerCase().trim() === b &&
+            (ball.model || "").toLowerCase().trim() === m &&
+            ball.bag) {
+          bagCounts[ball.bag] = (bagCounts[ball.bag] || 0) + ball.count;
+        }
+      }
+      const bags = Object.keys(bagCounts);
+      if (bags.length) return bags.sort((x, y) => bagCounts[y] - bagCounts[x])[0];
+    }
+    // 3. Pro V1/V1x fallback (only if not found in stock above)
+    if (b === "titleist" && (m.includes("pro v1x") || m.includes("pro v1"))) return "Pro V Bag";
+    // 4. Otherwise no auto-pick
     return null;
   }
   function selectBag(btn) {
@@ -1431,7 +1451,7 @@
         .join("");
 
     // Bag totals (display only) — compact 4-col grid with header
-    const bagOrder = ["Pro V Bag","Other Titleist Bag","Callaway Bag","Good Bag","Yellow Bag","The Rest","Cool Bag"];
+    const bagOrder = ["Cool Bag","Pro V Bag","Premium/Tour","Solid Mid-Range","Budget","Yellow Bag"];
     const bagTotals = {};
     for (const b of allBalls) {
       const bag = b.bag || "Unknown";
