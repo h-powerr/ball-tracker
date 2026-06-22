@@ -356,6 +356,7 @@
       <span style="font-size:10px;opacity:0.6">▾</span>
     </button>
     <div class="header-right">
+      <button class="btn-icon" id="btn-spin" onclick="toggleSpin()" title="Toggle ball spin">⟳</button>
       <button class="btn-icon" id="btn-dark" onclick="toggleDark()" title="Toggle dark mode">🌙</button>
       <button class="btn-icon" onclick="loadBalls(); loadStats();" title="Refresh">↺</button>
     </div>
@@ -737,6 +738,7 @@
   // ── Dark mode ─────────────────────────────────────────────────
   (function() {
     if (localStorage.getItem("balltracker-theme-v2") === "dark") applyTheme("dark");
+    if (localStorage.getItem("balltracker-spin") === "0") { spinEnabled = false; document.getElementById("btn-spin").style.opacity = "0.4"; }
   })();
   function applyTheme(theme) {
     document.documentElement.setAttribute("data-theme", theme);
@@ -772,10 +774,111 @@
   function ballKey(b) { return b ? `${b.brand}||${b.model}||${b.colour}||${b.bag||""}` : null; }
 
   // Renders a ball image with brand logo overlaid. size = px.
-  function ballWithLogo(brand, colour, size) {
-    const logoName = (brand || "").replace(/\s+/g, "");
+  // ── Ball spin state ─────────────────────────────────────────
+  let spinEnabled = true;
+  let spinOffset  = 0;
+  let spinRaf     = null;
+  const SPIN_SPEED    = 1.6;
+  const SPIN_FPS      = 24;
+  const SPIN_INTERVAL = 1000 / SPIN_FPS;
+  let spinLastFrame   = 0;
+  const spinCanvases  = {};
+
+  function toggleSpin() {
+    spinEnabled = !spinEnabled;
+    document.getElementById('btn-spin').style.opacity = spinEnabled ? '1' : '0.4';
+    localStorage.setItem('balltracker-spin', spinEnabled ? '1' : '0');
+    fillCard('play',   selected,       false);
+    fillCard('second', selectedSecond, false);
+  }
+
+  function initSpinLoop() {
+    if (spinRaf) return;
+    function loop(ts) {
+      spinRaf = requestAnimationFrame(loop);
+      if (document.hidden) return;
+      if (ts - spinLastFrame < SPIN_INTERVAL) return;
+      spinLastFrame = ts;
+      spinOffset += SPIN_SPEED;
+      if (spinOffset > 96) spinOffset -= 96;
+      Object.values(spinCanvases).forEach(b => {
+        if (b.ctx.canvas.isConnected) drawSpinFrame(b);
+        else delete spinCanvases[b.id];
+      });
+    }
+    spinRaf = requestAnimationFrame(loop);
+  }
+
+  function drawSpinFrame(b) {
+    const { ctx, logoImg, dimpleImg, baseColour, size } = b;
+    const cx = size/2, r = size/2 - 1;
+    ctx.clearRect(0, 0, size, size);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cx, r, 0, Math.PI*2);
+    ctx.clip();
+    ctx.fillStyle = baseColour;
+    ctx.fillRect(0, 0, size, size);
+    if (dimpleImg && dimpleImg.complete && dimpleImg.naturalWidth) {
+      const texH = size;
+      const texW = Math.round(dimpleImg.naturalWidth * (texH / dimpleImg.naturalHeight));
+      const scrollX = spinOffset % texW;
+      for (let x = scrollX - texW; x < size; x += texW) ctx.drawImage(dimpleImg, x, 0, texW, texH);
+    }
+    const vignette = ctx.createRadialGradient(cx,cx,r*0.5,cx,cx,r);
+    vignette.addColorStop(0,'rgba(0,0,0,0)');
+    vignette.addColorStop(0.7,'rgba(0,0,0,0.06)');
+    vignette.addColorStop(1,'rgba(0,0,0,0.4)');
+    ctx.fillStyle = vignette; ctx.fillRect(0,0,size,size);
+    const shine = ctx.createRadialGradient(cx-r*0.3,cx-r*0.35,0,cx-r*0.1,cx-r*0.1,r*0.75);
+    shine.addColorStop(0,'rgba(255,255,255,0.75)');
+    shine.addColorStop(0.3,'rgba(255,255,255,0.18)');
+    shine.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle = shine; ctx.fillRect(0,0,size,size);
+    if (logoImg && logoImg.complete && logoImg.naturalWidth) {
+      [spinOffset, spinOffset - size].forEach(logoCX => {
+        const dist = logoCX - cx;
+        const norm = dist / r;
+        const sf   = 1 - norm*norm;
+        if (sf <= 0) return;
+        const scaleX   = Math.sqrt(sf);
+        const logoH    = size * 0.36;
+        const aspect   = logoImg.naturalWidth / logoImg.naturalHeight;
+        const apparent = logoH * aspect * scaleX;
+        if (apparent < 1) return;
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, scaleX * 1.1);
+        ctx.drawImage(logoImg, logoCX - apparent/2, cx - logoH/2, apparent, logoH);
+        ctx.restore();
+      });
+    }
+    ctx.restore();
+  }
+
+  const BALL_BASE_COLOURS = {
+    white: '#f0f0f0', yellow: '#c89000', orange: '#c05000', red: '#b00000'
+  };
+
+  const dimpleImgCache = {};
+  ['White','Yellow','Orange','Red'].forEach(c => {
+    const img = new Image(); img.src = `dimples/${c}.png`;
+    dimpleImgCache[c.toLowerCase()] = img;
+  });
+
+  const logoImgCache = {};
+  function getLogoImg(brand) {
+    const name = (brand || '').replace(/\s+/g, '');
+    if (!logoImgCache[name]) { const img = new Image(); img.src = `logos/${name}.png`; logoImgCache[name] = img; }
+    return logoImgCache[name];
+  }
+
+  function ballWithLogo(brand, colour, size, canvasId = null) {
+    const logoName   = (brand || "").replace(/\s+/g, "");
     const colourName = ((colour || "white").trim().charAt(0).toUpperCase() + (colour || "white").trim().slice(1).toLowerCase());
-    const logoSize = Math.round(size * 0.65);
+    const logoSize   = Math.round(size * 0.65);
+    if (spinEnabled && canvasId) {
+      return `<canvas id="${canvasId}" width="${size}" height="${size}" style="border-radius:50%;display:block"></canvas>`;
+    }
     return `<span class="ball-logo" style="width:${size}px;height:${size}px">
       <img class="ball-img" src="balls/${colourName}.png" onerror="this.style.display='none'">
       <img class="logo-img" src="logos/${logoName}.png"
@@ -1013,7 +1116,21 @@
       card.className = `in-play-card${isPlay ? "" : " second"} filled`;
       if (animate) card.classList.add("promote-animate");
       icon.className = "ball-icon filled";
-      icon.innerHTML = ballWithLogo(ball.brand, ball.colour, 44);
+      const cId = 'spin-' + (isPlay ? 'play' : 'second');
+      delete spinCanvases[cId];
+      icon.innerHTML = ballWithLogo(ball.brand, ball.colour, 44, cId);
+      if (spinEnabled && document.getElementById(cId)) {
+        const colourKey = (ball.colour || 'white').toLowerCase();
+        spinCanvases[cId] = {
+          id: cId,
+          ctx:        document.getElementById(cId).getContext('2d'),
+          logoImg:    getLogoImg(ball.brand),
+          dimpleImg:  dimpleImgCache[colourKey],
+          baseColour: BALL_BASE_COLOURS[colourKey] || '#f0f0f0',
+          size:       44,
+        };
+        initSpinLoop();
+      }
       const lbl = document.getElementById(labelId);
       if (lbl) lbl.outerHTML = `<div id="${labelId}">
         <div style="font-size:${isPlay?"16px":"14px"};font-weight:800;line-height:1.2;color:var(--ink)">${escHtml(ball.model)}</div>
