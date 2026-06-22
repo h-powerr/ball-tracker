@@ -530,10 +530,10 @@
       <div>
         <div class="field-label">Colour</div>
         <div class="colour-grid">
-          <button class="colour-btn selected" data-colour="White"  onclick="selectColour(this)"><span class="emoji">⚪</span><span class="label">White</span></button>
-          <button class="colour-btn"          data-colour="Yellow" onclick="selectColour(this)"><span class="emoji">🟡</span><span class="label">Yellow</span></button>
-          <button class="colour-btn"          data-colour="Orange" onclick="selectColour(this)"><span class="emoji">🟠</span><span class="label">Orange</span></button>
-          <button class="colour-btn"          data-colour="Red"    onclick="selectColour(this)"><span class="emoji">🔴</span><span class="label">Red</span></button>
+          <button class="colour-btn selected" data-colour="White"  onclick="selectColour(this)"><img src="balls/White.png"  class="emoji" style="width:28px;height:28px;object-fit:contain"><span class="label">White</span></button>
+          <button class="colour-btn"          data-colour="Yellow" onclick="selectColour(this)"><img src="balls/Yellow.png" class="emoji" style="width:28px;height:28px;object-fit:contain"><span class="label">Yellow</span></button>
+          <button class="colour-btn"          data-colour="Orange" onclick="selectColour(this)"><img src="balls/Orange.png" class="emoji" style="width:28px;height:28px;object-fit:contain"><span class="label">Orange</span></button>
+          <button class="colour-btn"          data-colour="Red"    onclick="selectColour(this)"><img src="balls/Red.png"    class="emoji" style="width:28px;height:28px;object-fit:contain"><span class="label">Red</span></button>
         </div>
       </div>
       <div>
@@ -751,15 +751,8 @@
   // ── Utilities ─────────────────────────────────────────────────
   function ballEmoji(colour) {
     const c = (colour || "white").toLowerCase().trim();
-    if (c === "yellow") return "🟡";
-    if (c === "orange") return "🟠";
-    if (c === "red")    return "🔴";
-    if (c === "pink")   return "🩷";
-    if (c === "blue")   return "🔵";
-    if (c === "green")  return "🟢";
-    if (c === "purple") return "🟣";
-    if (c === "black")  return "⚫";
-    return "⚪";
+    const name = c.charAt(0).toUpperCase() + c.slice(1);
+    return `<img src="balls/${name}.png" style="width:1em;height:1em;object-fit:contain;vertical-align:middle" onerror="this.replaceWith(document.createTextNode('⚪'))">`;
   }
   function smartTimeLabel(ts) {
     const d = new Date(ts), now = new Date();
@@ -773,9 +766,12 @@
   // Renders a ball emoji with brand logo overlaid. size = emoji font-size in px.
   function ballWithLogo(brand, colour, size) {
     const logoName = (brand || "").replace(/\s+/g, "");
+    const colourName = ((colour || "white").trim().charAt(0).toUpperCase() + (colour || "white").trim().slice(1).toLowerCase());
     const logoSize = Math.round(size * 0.70);
-    return `<span class="ball-logo" style="font-size:${size}px;width:${size}px;height:${size}px">
-      ${ballEmoji(colour)}
+    return `<span class="ball-logo" style="width:${size}px;height:${size}px">
+      <img src="balls/${colourName}.png"
+        style="width:${size}px;height:${size}px;object-fit:contain;position:absolute"
+        onerror="this.style.display='none'">
       <img src="logos/${logoName}.png"
         style="width:${logoSize}px;height:${logoSize}px;object-fit:contain;position:absolute"
         onerror="this.style.display='none'">
