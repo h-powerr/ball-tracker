@@ -1,11 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#111111" id="theme-color-meta">
-  <meta name="color-scheme" content="light only">
-  <meta name="supported-color-schemes" content="light">
+  <meta name="theme-color" content="#111111">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Ball Tracker</title>
   <link rel="apple-touch-icon" href="icon.png">
@@ -26,27 +24,28 @@
       --dd-hover:    #fff0f0;
       --radius:      14px;
     }
-    [data-theme="dark"] {
-      --pine:        #111111;
-      --turf:        #ff4444;
-      --turf-light:  #1a0a0a;
-      --turf-border: #ff4444;
-      --hazard:      #cc0000;
-      --bg:          #111111;
-      --surface:     #1c1c1c;
-      --ink:         #f5f5f5;
-      --muted:       #a0a0a0;
-      --border:      #2e2e2e;
-      --border-light:#222222;
-      --dd-hover:    #1f1212;
+    .spin-toggle {
+      display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 4px 0;
     }
+    .spin-toggle input { display: none; }
+    .spin-toggle-track {
+      width: 34px; height: 20px; background: rgba(255,255,255,0.2); border-radius: 10px;
+      position: relative; transition: background 0.2s;
+    }
+    .spin-toggle-track::after {
+      content: ''; position: absolute; top: 2px; left: 2px;
+      width: 16px; height: 16px; background: #fff; border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .spin-toggle input:checked + .spin-toggle-track { background: var(--turf); }
+    .spin-toggle input:checked + .spin-toggle-track::after { transform: translateX(14px); }
+    .spin-toggle-label { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.5); }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html { height: 100%; font-size: 16px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; overflow: hidden; background: var(--bg); }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg); color: var(--ink);
       height: 100%; overflow: hidden;
-      transition: background 0.25s, color 0.25s;
     }
     .app {
       width: 100%; height: 100%;
@@ -138,10 +137,11 @@
     }
     .search-input:focus { border-color: var(--turf-border); }
     .bag-chips-wrap {
-      display: none; padding: 8px 10px 6px; flex-wrap: wrap; gap: 6px;
+      display: none; padding: 8px 10px 6px;
+      grid-template-columns: repeat(3, 1fr); gap: 6px;
       border-bottom: 1px solid var(--border-light); background: var(--surface);
     }
-    .bag-chips-wrap.visible { display: flex; }
+    .bag-chips-wrap.visible { display: grid; }
     .dd-item {
       padding: 10px 16px; font-size: 15px; cursor: pointer;
       display: flex; align-items: center; gap: 12px;
@@ -200,7 +200,7 @@
       padding: 5px 12px; border-radius: 20px;
       border: 1.5px solid var(--border); background: var(--surface);
       font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.12s;
-      color: var(--ink); display: flex; align-items: center; gap: 4px;
+      color: var(--ink); display: flex; align-items: center; justify-content: center; gap: 4px;
     }
     .filter-chip.active { border-color: var(--turf-border); background: var(--turf-light); color: var(--turf); }
     .filter-chip:active { transform: scale(0.95); }
@@ -219,7 +219,7 @@
     .colour-btn.selected { border-color: var(--turf-border); background: var(--turf-light); }
     .colour-btn.selected span.label { color: var(--turf); }
     .colour-btn:active { transform: scale(0.95); }
-    .brand-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-height: 160px; overflow-y: auto; }
+    .brand-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
     .brand-btn {
       border: 1.5px solid var(--border); border-radius: 10px; background: var(--surface);
       cursor: pointer; padding: 8px 6px; font-size: 13px; font-weight: 600;
@@ -233,10 +233,10 @@
       outline: none; -webkit-appearance: none; transition: border-color 0.15s, background 0.25s;
     }
     .field-input:focus { border-color: var(--turf-border); }
-    .model-suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+    .model-suggestions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 7px; max-height: 120px; overflow-y: auto; }
     .model-chip {
       padding: 5px 11px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface);
-      font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.12s; color: var(--ink);
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.12s; color: var(--ink); text-align: center;
     }
     .model-chip:active, .model-chip.selected { border-color: var(--turf-border); background: var(--turf-light); color: var(--turf); }
     .qty-row { display: flex; align-items: center; border: 1.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
@@ -276,7 +276,7 @@
     .toast.err  { background: #374151; }
 
     /* ── Stock Summary ── */
-    .colour-pills { display:flex; gap:8px; padding:14px 20px 10px; flex-wrap:wrap; flex-shrink:0; border-bottom:1px solid var(--border-light); }
+    .colour-pills { display:grid; grid-template-columns:repeat(5, auto); gap:8px; padding:14px 20px 10px; flex-shrink:0; border-bottom:1px solid var(--border-light); justify-content:start; }
     .colour-pill {
       display:flex; align-items:center; gap:6px; padding:6px 14px; border-radius:20px;
       background:var(--surface); border:1.5px solid var(--border);
@@ -347,18 +347,21 @@
 <div class="app">
   <header>
     <div class="header-left">
-      <img src="icon.png" style="width:28px;height:28px;border-radius:6px">
+      <img src="icon.png" style="width:38px;height:38px;border-radius:8px">
     </div>
     <button id="course-pill" onclick="openCoursePicker()"
-      style="background:rgba(255,255,255,0.12);border:none;border-radius:20px;padding:5px 12px;
-             color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;max-width:200px">
-      <span style="font-size:11px;opacity:0.7">📍</span>
+      style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:8px 14px;
+             color:#fff;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;max-width:220px">
+      <span style="font-size:13px;opacity:0.7">📍</span>
       <span id="course-pill-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Drax Golf Club</span>
-      <span style="font-size:10px;opacity:0.6">▾</span>
+      <span style="font-size:11px;opacity:0.6">▾</span>
     </button>
     <div class="header-right">
-      <button class="btn-icon" id="btn-spin" onclick="toggleSpin()" title="Toggle ball spin">⟳</button>
-      <button class="btn-icon" id="btn-dark" onclick="toggleDark()" title="Toggle dark mode">🌙</button>
+      <label class="spin-toggle" title="Toggle ball spin">
+        <input type="checkbox" id="chk-spin" onchange="toggleSpin()">
+        <span class="spin-toggle-track"></span>
+        <span class="spin-toggle-label">Spin</span>
+      </label>
       <button class="btn-icon" onclick="loadBalls(); loadStats();" title="Refresh">↺</button>
     </div>
   </header>
@@ -428,7 +431,7 @@
           <div class="stat-value loading" id="stat-total-lost">–</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Rounds Tracked</div>
+          <div class="stat-label">Total Rounds</div>
           <div class="stat-value loading" id="stat-rounds-tracked">–</div>
         </div>
       </div>
@@ -462,17 +465,17 @@
     <button class="sheet-close" onclick="closeSelectSheet()">✕</button>
   </div>
   <div style="display:flex;flex-direction:column;height:100%;overflow:hidden">
-    <!-- Bag chips frozen at top -->
-    <div class="bag-chips-wrap" id="bag-chips" style="flex-shrink:0;border-bottom:1px solid var(--border-light)"></div>
-    <!-- Search bar -->
-    <div style="padding:10px 16px 8px;flex-shrink:0;background:var(--surface)">
-      <div style="position:relative">
-        <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:17px;color:var(--muted);pointer-events:none" id="search-icon">🔍</span>
-        <input type="text" id="search-input" class="search-input"
-          placeholder="Loading…" disabled
-          autocomplete="off" autocorrect="off" spellcheck="false"
-          oninput="onSearch()">
-      </div>
+    <!-- Bag chips + search toggle -->
+    <div style="display:flex;align-items:center;flex-shrink:0;border-bottom:1px solid var(--border-light);gap:0">
+      <div class="bag-chips-wrap" id="bag-chips" style="flex:1;border-bottom:none"></div>
+      <button id="btn-search-toggle" onclick="toggleSearchBar()" style="background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;padding:8px 14px;flex-shrink:0" title="Search">🔍</button>
+    </div>
+    <!-- Collapsible search bar -->
+    <div id="search-bar-wrap" style="display:none;padding:8px 16px 8px;flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--border-light)">
+      <input type="text" id="search-input" class="search-input" style="padding-left:14px"
+        placeholder="Loading…" disabled
+        autocomplete="off" autocorrect="off" spellcheck="false"
+        oninput="onSearch()">
     </div>
     <!-- Ball list scrollable -->
     <div id="dd-list" style="overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch">
@@ -531,13 +534,20 @@
   <div class="sheet-body">
     <div class="form-body">
       <div>
-        <div class="field-label">Colour</div>
-        <div class="colour-grid">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="field-label" style="margin-bottom:0">Colour</div>
+          <button class="colour-btn" data-colour="Other" onclick="selectColour(this)" style="padding:3px 10px;border-radius:8px;border-width:1.5px;gap:4px;flex-direction:row">
+            <span class="emoji" style="font-size:14px">🎨</span><span class="label" style="font-size:11px">Other</span>
+          </button>
+        </div>
+        <div class="colour-grid" style="margin-top:5px">
           <button class="colour-btn selected" data-colour="White"  onclick="selectColour(this)"><span class="emoji">⚪</span><span class="label">White</span></button>
           <button class="colour-btn"          data-colour="Yellow" onclick="selectColour(this)"><span class="emoji">🟡</span><span class="label">Yellow</span></button>
           <button class="colour-btn"          data-colour="Orange" onclick="selectColour(this)"><span class="emoji">🟠</span><span class="label">Orange</span></button>
           <button class="colour-btn"          data-colour="Red"    onclick="selectColour(this)"><span class="emoji">🔴</span><span class="label">Red</span></button>
         </div>
+        <input type="text" id="colour-other" class="field-input" placeholder="Enter colour name"
+          autocomplete="off" autocorrect="off" spellcheck="false" style="display:none;margin-top:8px">
       </div>
       <div>
         <div class="field-label">Brand</div>
@@ -651,10 +661,10 @@
   <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:14px 20px 12px;border-bottom:1px solid var(--border-light);flex-shrink:0">
     <div></div>
     <button id="holestats-course-pill" onclick="openCoursePicker()"
-      style="background:var(--border-light);border:1.5px solid var(--border);border-radius:20px;padding:5px 12px;color:var(--ink);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;max-width:180px">
-      <span style="font-size:11px;color:var(--muted)">📍</span>
+      style="background:var(--border-light);border:1.5px solid var(--border);border-radius:10px;padding:8px 14px;color:var(--ink);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;max-width:220px">
+      <span style="font-size:13px;color:var(--muted)">📍</span>
       <span id="holestats-course-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Drax Golf Club</span>
-      <span style="font-size:10px;color:var(--muted)">▾</span>
+      <span style="font-size:11px;color:var(--muted)">▾</span>
     </button>
     <div style="display:flex;justify-content:flex-end">
       <button class="sheet-close" onclick="closeHoleStats()">✕</button>
@@ -736,21 +746,6 @@
   let currentCourse       = localStorage.getItem("balltracker-course") || "Drax Golf Club";
   let knownCourses        = [];
 
-  // ── Dark mode ─────────────────────────────────────────────────
-  (function() {
-    if (localStorage.getItem("balltracker-theme-v2") === "dark") applyTheme("dark");
-  })();
-  function applyTheme(theme) {
-    document.documentElement.setAttribute("data-theme", theme);
-    const btn = document.getElementById("btn-dark");
-    if (btn) btn.textContent = theme === "dark" ? "☀️" : "🌙";
-  }
-  function toggleDark() {
-    const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
-    applyTheme(next);
-    localStorage.setItem("balltracker-theme-v2", next);
-  }
-
   // ── Utilities ─────────────────────────────────────────────────
   function ballEmoji(colour) {
     const c = (colour || "white").toLowerCase().trim();
@@ -785,8 +780,7 @@
   const spinCanvases  = {};
 
   function toggleSpin() {
-    spinEnabled = !spinEnabled;
-    document.getElementById('btn-spin').style.opacity = spinEnabled ? '1' : '0.4';
+    spinEnabled = document.getElementById('chk-spin').checked;
     localStorage.setItem('balltracker-spin', spinEnabled ? '1' : '0');
     if (!spinEnabled) {
       // Clear spin canvases and draw static frames
@@ -1029,10 +1023,8 @@
 
   // ── Boot ──────────────────────────────────────────────────────
   document.addEventListener("DOMContentLoaded", () => {
-    if (!spinEnabled) {
-      const btn = document.getElementById('btn-spin');
-      if (btn) btn.style.opacity = '0.4';
-    }
+    const chk = document.getElementById('chk-spin');
+    if (chk) chk.checked = spinEnabled;
     updateCoursePill();
     loadBalls();
     loadStats();
@@ -1058,20 +1050,17 @@
     document.getElementById("dd-list").innerHTML = '<div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>';
     input.disabled = true;
     input.placeholder = "Loading…";
-    document.getElementById("search-icon").textContent = "⏳";
     try {
       allBalls = await apiGet("getUniqueBalls");
       const total  = allBalls.reduce((sum, b) => sum + b.count, 0);
       const unique = allBalls.length;
       input.disabled = false;
       input.placeholder = `Search ${unique} ball type${unique !== 1 ? "s" : ""}…`;
-      document.getElementById("search-icon").textContent = "🔍";
       renderDd(getFilteredBallsForSlot(""));
       showToast(`${total} balls ready`, "ok");
     } catch(err) {
       document.getElementById("dd-list").innerHTML = `<div class="dd-empty">⚠️ Failed to load</div>`;
       showToast("Failed to load balls", "err");
-      document.getElementById("search-icon").textContent = "🔍";
     }
   }
 
@@ -1120,6 +1109,21 @@
     });
   }
 
+  // ── Search toggle ──────────────────────────────────────────────
+  function toggleSearchBar() {
+    const wrap = document.getElementById("search-bar-wrap");
+    const input = document.getElementById("search-input");
+    const visible = wrap.style.display !== "none";
+    if (visible) {
+      wrap.style.display = "none";
+      input.value = "";
+      onSearch();
+    } else {
+      wrap.style.display = "block";
+      input.focus();
+    }
+  }
+
   // ── Dropdown (inside select sheet) ───────────────────────────
   function onSearch() {
     renderDd(getFilteredBallsForSlot(document.getElementById("search-input").value.toLowerCase()));
@@ -1160,6 +1164,7 @@
     document.getElementById("sheet-select").classList.remove("open");
     document.getElementById("overlay").classList.remove("open");
     document.getElementById("search-input").value = "";
+    document.getElementById("search-bar-wrap").style.display = "none";
     renderDd(getFilteredBallsForSlot(""));
   }
 
@@ -1536,6 +1541,12 @@
     document.querySelectorAll(".colour-btn").forEach(b => b.classList.remove("selected"));
     btn.classList.add("selected");
     selectedColour = btn.dataset.colour;
+    const colourOther = document.getElementById("colour-other");
+    if (selectedColour === "Other") {
+      colourOther.style.display = "block"; colourOther.focus();
+    } else {
+      colourOther.style.display = "none"; colourOther.value = "";
+    }
     applyBagSuggestion();
   }
   function selectBrand(btn) {
@@ -1631,6 +1642,8 @@
     document.querySelector('.colour-btn[data-colour="White"]').classList.add("selected");
     document.querySelectorAll(".brand-btn:not(#bag-grid .brand-btn)").forEach(b => b.classList.remove("selected"));
     document.querySelectorAll("#bag-grid .brand-btn").forEach(b => b.classList.remove("selected"));
+    document.getElementById("colour-other").style.display = "none";
+    document.getElementById("colour-other").value = "";
     document.getElementById("brand-other").style.display = "none";
     document.getElementById("brand-other").value = "";
     document.getElementById("add-model").value = "";
@@ -1642,15 +1655,17 @@
   }
   async function submitAddBall() {
     const brand = selectedBrand === "Other" ? document.getElementById("brand-other").value.trim() : selectedBrand;
+    const colour = selectedColour === "Other" ? document.getElementById("colour-other").value.trim() : selectedColour;
     const model = document.getElementById("add-model").value.trim();
     if (!brand) { showToast("Please select a brand", "err"); return; }
+    if (!colour) { showToast("Please enter a colour", "err"); return; }
     if (!model)  { showToast("Please enter a model",  "err"); return; }
     const btn = document.getElementById("btn-add-submit");
     btn.innerHTML = '<span class="spin"></span> Saving…'; btn.disabled = true;
     try {
-      for (let i = 0; i < addQty; i++) await apiPost("addBall", { brand, model, colour: selectedColour, bag: selectedBag || "" });
+      for (let i = 0; i < addQty; i++) await apiPost("addBall", { brand, model, colour, bag: selectedBag || "" });
       closeAll();
-      showToast(`${ballEmoji(selectedColour)} ${brand} ${model} ×${addQty} added ✓`, "ok");
+      showToast(`${ballEmoji(colour)} ${brand} ${model} ×${addQty} added ✓`, "ok");
       loadBalls();
     } catch(e) {
       btn.innerHTML = "＋&nbsp; Add to Stock"; btn.disabled = false;
@@ -1684,28 +1699,21 @@
         .map(c => `<div class="colour-pill ${summaryColourFilter === c ? "active" : ""}" onclick="setSummaryFilter('${escAttr(c)}')">${ballEmoji(c)} ${colourTotals[c]}</div>`)
         .join("");
 
-    // Bag totals (display only) — compact 4-col grid with header
+    // Bag totals — 3x2 grid showing all bags (even empty ones)
     const bagOrder = ["Cool Bag","Pro V Bag","Premium/Tour","Solid Mid-Range","Budget","Yellow Bag"];
     const bagTotals = {};
     for (const b of allBalls) {
       const bag = b.bag || "Unknown";
       bagTotals[bag] = (bagTotals[bag] || 0) + b.count;
     }
-    const sortedBags = Object.keys(bagTotals).sort((a, b) => {
-      const ai = bagOrder.indexOf(a), bi = bagOrder.indexOf(b);
-      if (ai === -1 && bi === -1) return a.localeCompare(b);
-      if (ai === -1) return 1; if (bi === -1) return -1;
-      return ai - bi;
-    });
-    const bagChipsHtml = sortedBags.length
-      ? `<div style="padding:12px 20px 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)">Bag Stock</div>
-         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:0 20px 12px;border-bottom:1px solid var(--border-light)">` +
-        sortedBags.map(bg => `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:7px 4px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface)">
-          <span style="font-size:10px;font-weight:600;color:var(--muted);text-align:center;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${escHtml(bg.replace(/ Bag$/,""))}</span>
-          <span style="font-size:15px;font-weight:800;color:var(--ink)">${bagTotals[bg]}</span>
-        </div>`).join("") +
-        `</div>`
-      : "";
+    const bagChipsHtml =
+      `<div style="padding:12px 20px 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)">Bag Stock</div>
+       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:0 20px 12px;border-bottom:1px solid var(--border-light)">` +
+      bagOrder.map(bg => `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:8px 4px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);min-height:52px">
+        <span style="font-size:10px;font-weight:600;color:var(--muted);text-align:center;line-height:1.1">${escHtml(bg.replace(/ Bag$/,""))}</span>
+        <span style="font-size:15px;font-weight:800;color:var(--ink)">${bagTotals[bg] || 0}</span>
+      </div>`).join("") +
+      `</div>`;
 
     // Filtered balls (colour only)
     const filtered = allBalls.filter(b =>
@@ -1752,9 +1760,6 @@
   async function loadHoleStatsForRounds() {
     try {
       const data = await apiGet("getHoleStats", { course: currentCourse });
-      const el = document.getElementById("stat-rounds-tracked");
-      if (el) { el.className = "stat-value"; el.textContent = data.numRounds || 0; }
-      // Cache it so Hole Stats page doesn't need to re-fetch
       cachedHoleStats = data;
     } catch(e) { /* silent */ }
   }
@@ -1827,11 +1832,13 @@
       `<text x="${px(i).toFixed(1)}" y="${H - padB + 14}" text-anchor="middle" font-size="9" fill="var(--muted)">${days[i].key}</text>`
     ).join("");
 
-    // Dots
+    // Dots + count labels
     const dots = days.map((d, i) => {
       const isMax = d.count === maxVal;
-      return `<circle cx="${px(i).toFixed(1)}" cy="${py(d.count).toFixed(1)}" r="${isMax ? 4 : 3}"
-        fill="${isMax ? "var(--turf)" : "var(--pine)"}" stroke="var(--surface)" stroke-width="1.5"/>`;
+      const cx = px(i).toFixed(1), cy = py(d.count).toFixed(1);
+      return `<circle cx="${cx}" cy="${cy}" r="${isMax ? 4 : 3}"
+        fill="${isMax ? "var(--turf)" : "var(--pine)"}" stroke="var(--surface)" stroke-width="1.5"/>
+        <text x="${cx}" y="${(py(d.count) - 8).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="${isMax ? "var(--turf)" : "var(--ink)"}">${d.count}</text>`;
     }).join("");
 
     // Fill area under line
@@ -1882,9 +1889,6 @@
       : "None yet";
     const avgLabel = worstHole ? worstHole.avg.toFixed(2) : "–";
 
-    // Update main page Rounds Tracked
-    const rtEl = document.getElementById("stat-rounds-tracked");
-    if (rtEl) { rtEl.className = "stat-value"; rtEl.textContent = numRounds || 0; }
 
     // Line graph
     const lineGraph = buildLineGraph(cachedLostBalls);
@@ -1964,9 +1968,14 @@
 
       set("stat-today", s.lostToday);
       setHtml("stat-last", s.lastLost
-        ? `${smartTimeLabel(s.lastLost.ts)}<small>${ballEmoji(s.lastLost.colour)} ${escHtml(s.lastLost.brand)} ${escHtml(s.lastLost.model)}</small>`
+        ? `${smartTimeLabel(s.lastLost.ts)}<small><span style="font-size:9px">${ballEmoji(s.lastLost.colour)}</span> ${escHtml(s.lastLost.brand)} ${escHtml(s.lastLost.model)}</small>`
         : "None yet");
       set("stat-total-lost", s.totalLost);
+      if (s.totalRounds != null) {
+        set("stat-rounds-tracked", s.totalRounds);
+      } else if (s.avgPerRound && s.totalLost) {
+        set("stat-rounds-tracked", Math.round(s.totalLost / s.avgPerRound));
+      }
       // Worst day stored for hole stats page
       window._worstDayStr = s.worstDay ? `${escHtml(shortDate(s.worstDay.dateStr))} – ${s.worstDay.count} Balls` : "None yet";
       const hsWd = document.getElementById("hs-worst-day");
