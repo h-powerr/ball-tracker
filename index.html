@@ -1418,7 +1418,12 @@
     openSheet("sheet-restore");
     const body = document.getElementById("body-restore");
     if (cachedLostBalls !== null) {
-      renderLostBalls(cachedLostBalls);
+      try {
+        renderLostBalls(cachedLostBalls);
+      } catch(e) {
+        cachedLostBalls = null;
+        body.innerHTML = '<div class="sheet-empty">⚠️ Failed to load</div>';
+      }
     } else {
       body.innerHTML = '<div class="dd-loading"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--turf)"></span> Loading…</div>';
       try {
