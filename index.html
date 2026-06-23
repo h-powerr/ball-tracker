@@ -24,22 +24,6 @@
       --dd-hover:    #fff0f0;
       --radius:      14px;
     }
-    .spin-toggle {
-      display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 4px 0;
-    }
-    .spin-toggle input { display: none; }
-    .spin-toggle-track {
-      width: 34px; height: 20px; background: rgba(255,255,255,0.2); border-radius: 10px;
-      position: relative; transition: background 0.2s;
-    }
-    .spin-toggle-track::after {
-      content: ''; position: absolute; top: 2px; left: 2px;
-      width: 16px; height: 16px; background: #fff; border-radius: 50%;
-      transition: transform 0.2s;
-    }
-    .spin-toggle input:checked + .spin-toggle-track { background: var(--turf); }
-    .spin-toggle input:checked + .spin-toggle-track::after { transform: translateX(14px); }
-    .spin-toggle-label { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.5); }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html { height: 100%; font-size: 16px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; overflow: hidden; background: var(--bg); }
     body {
@@ -278,11 +262,12 @@
     /* ── Stock Summary ── */
     .colour-pills { display:grid; grid-template-columns:repeat(5, auto); gap:8px; padding:14px 20px 10px; flex-shrink:0; border-bottom:1px solid var(--border-light); justify-content:start; }
     .colour-pill {
-      display:flex; align-items:center; gap:6px; padding:6px 14px; border-radius:20px;
+      display:flex; align-items:center; gap:4px; padding:5px 10px; border-radius:20px;
       background:var(--surface); border:1.5px solid var(--border);
-      font-size:14px; font-weight:700; color:var(--ink); cursor:pointer; transition: all 0.12s;
+      font-size:13px; font-weight:700; color:var(--ink); cursor:pointer; transition: all 0.12s;
+      white-space:nowrap;
     }
-    .colour-pill span { font-size:18px; }
+    .colour-pill span { font-size:14px; }
     .colour-pill.active { border-color:var(--turf-border); background:var(--turf-light); color:var(--turf); }
     .colour-pill:active { transform: scale(0.95); }
     .brand-accordion { border-bottom:1px solid var(--border-light); }
@@ -357,11 +342,6 @@
       <span style="font-size:11px;opacity:0.6">▾</span>
     </button>
     <div class="header-right">
-      <label class="spin-toggle" title="Toggle ball spin">
-        <input type="checkbox" id="chk-spin" onchange="toggleSpin()">
-        <span class="spin-toggle-track"></span>
-        <span class="spin-toggle-label">Spin</span>
-      </label>
       <button class="btn-icon" onclick="loadBalls(); loadStats();" title="Refresh">↺</button>
     </div>
   </header>
@@ -770,7 +750,7 @@
 
   // Renders a ball image with brand logo overlaid. size = px.
   // ── Ball spin state ─────────────────────────────────────────
-  let spinEnabled = localStorage.getItem('balltracker-spin') !== '0';
+  let spinEnabled = true;
   let spinOffset  = 0;
   let spinRaf     = null;
   const SPIN_SPEED    = 1.6;
@@ -778,18 +758,6 @@
   const SPIN_INTERVAL = 1000 / SPIN_FPS;
   let spinLastFrame   = 0;
   const spinCanvases  = {};
-
-  function toggleSpin() {
-    spinEnabled = document.getElementById('chk-spin').checked;
-    localStorage.setItem('balltracker-spin', spinEnabled ? '1' : '0');
-    if (!spinEnabled) {
-      // Clear spin canvases and draw static frames
-      Object.values(spinCanvases).forEach(b => drawStaticFrame(b));
-      for (const k in spinCanvases) delete spinCanvases[k];
-    }
-    fillCard('play',   selected,       false);
-    fillCard('second', selectedSecond, false);
-  }
 
   function initSpinLoop() {
     if (spinRaf) return;
@@ -1023,8 +991,6 @@
 
   // ── Boot ──────────────────────────────────────────────────────
   document.addEventListener("DOMContentLoaded", () => {
-    const chk = document.getElementById('chk-spin');
-    if (chk) chk.checked = spinEnabled;
     updateCoursePill();
     loadBalls();
     loadStats();
@@ -1070,6 +1036,7 @@
     catch(e) { /* silent */ }
   }
   const BAG_ORDER = ["Cool Bag","Pro V Bag","Premium/Tour","Solid Mid-Range","Budget","Yellow Bag"];
+  const BAG_DISPLAY = {"Cool Bag":"Cool","Pro V Bag":"Pro Vs","Premium/Tour":"Premium","Solid Mid-Range":"Mid Range","Budget":"Budget","Yellow Bag":"Yellow"};
   function renderBagChips() {
     const wrap = document.getElementById("bag-chips");
     if (!bagNames.length) { wrap.classList.remove("visible"); return; }
@@ -1082,7 +1049,7 @@
     });
     wrap.innerHTML = sorted.map(b =>
       `<button class="filter-chip ${activeBagFilters.has(b) ? "active" : ""}"
-        onclick="toggleBagFilter('${escAttr(b)}', event)">${escHtml(b)}</button>`
+        onclick="toggleBagFilter('${escAttr(b)}', event)">${escHtml(BAG_DISPLAY[b] || b)}</button>`
     ).join("");
   }
   function toggleBagFilter(bag, event) {
@@ -1115,14 +1082,24 @@
     const input = document.getElementById("search-input");
     const visible = wrap.style.display !== "none";
     if (visible) {
-      wrap.style.display = "none";
-      input.value = "";
-      onSearch();
+      closeSearchBar();
     } else {
       wrap.style.display = "block";
       input.focus();
     }
   }
+  function closeSearchBar() {
+    const wrap = document.getElementById("search-bar-wrap");
+    const input = document.getElementById("search-input");
+    wrap.style.display = "none";
+    if (input.value) { input.value = ""; onSearch(); }
+  }
+  document.addEventListener("click", e => {
+    const wrap = document.getElementById("search-bar-wrap");
+    if (!wrap || wrap.style.display === "none") return;
+    if (e.target.closest("#search-bar-wrap") || e.target.closest("#btn-search-toggle")) return;
+    closeSearchBar();
+  });
 
   // ── Dropdown (inside select sheet) ───────────────────────────
   function onSearch() {
@@ -1163,8 +1140,7 @@
   function closeSelectSheet() {
     document.getElementById("sheet-select").classList.remove("open");
     document.getElementById("overlay").classList.remove("open");
-    document.getElementById("search-input").value = "";
-    document.getElementById("search-bar-wrap").style.display = "none";
+    closeSearchBar();
     renderDd(getFilteredBallsForSlot(""));
   }
 
@@ -1693,7 +1669,7 @@
     const colourTotals = {};
     for (const b of allBalls) colourTotals[b.colour || "White"] = (colourTotals[b.colour || "White"] || 0) + b.count;
     const pillsHtml =
-      `<div class="colour-pill ${summaryColourFilter === null ? "active" : ""}" onclick="setSummaryFilter(null)">${totalBalls} Balls</div>` +
+      `<div class="colour-pill ${summaryColourFilter === null ? "active" : ""}" onclick="setSummaryFilter(null)">All ${totalBalls}</div>` +
       ["White","Yellow","Orange","Red","Pink","Blue","Green","Purple","Black"]
         .filter(c => colourTotals[c])
         .map(c => `<div class="colour-pill ${summaryColourFilter === c ? "active" : ""}" onclick="setSummaryFilter('${escAttr(c)}')">${ballEmoji(c)} ${colourTotals[c]}</div>`)
@@ -1710,7 +1686,7 @@
       `<div style="padding:12px 20px 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)">Bag Stock</div>
        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:0 20px 12px;border-bottom:1px solid var(--border-light)">` +
       bagOrder.map(bg => `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:8px 4px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);min-height:52px">
-        <span style="font-size:10px;font-weight:600;color:var(--muted);text-align:center;line-height:1.1">${escHtml(bg.replace(/ Bag$/,""))}</span>
+        <span style="font-size:10px;font-weight:600;color:var(--muted);text-align:center;line-height:1.1">${escHtml(BAG_DISPLAY[bg] || bg)}</span>
         <span style="font-size:15px;font-weight:800;color:var(--ink)">${bagTotals[bg] || 0}</span>
       </div>`).join("") +
       `</div>`;
