@@ -1445,9 +1445,10 @@
       groups[dateKey].balls.push({ ...b });
     }
 
-    body.innerHTML = Object.entries(groups)
-      .sort((a, b) => b[1].ts - a[1].ts)
-      .map(([date, group]) => {
+    const sortedGroups = Object.entries(groups)
+      .sort((a, b) => b[1].ts - a[1].ts);
+    body.innerHTML = sortedGroups
+      .map(([date, group], groupIdx) => {
         const isToday = date === todayKey;
         const sorted = [...group.balls].sort((a, b) => {
           if (a.hole == null && b.hole == null) return 0;
@@ -1473,6 +1474,26 @@
             </div>`).join("")}
         </div>`;
       }).join("");
+
+    sortedGroups.forEach(([, group], groupIdx) => {
+      const sorted = [...group.balls].sort((a, b) => {
+        if (a.hole == null && b.hole == null) return 0;
+        if (a.hole == null) return 1;
+        if (b.hole == null) return -1;
+        return a.hole - b.hole;
+      });
+      sorted.forEach((b, hi) => {
+        const el = document.getElementById(`hball-${groupIdx}-${hi}`);
+        if (!el) return;
+        const dpr = window.devicePixelRatio || 1;
+        el.width = 38 * dpr; el.height = 38 * dpr;
+        el.style.width = '38px'; el.style.height = '38px';
+        const ctx = el.getContext('2d');
+        ctx.scale(dpr, dpr);
+        const colourKey = (b.colour || 'white').toLowerCase();
+        drawStaticFrame({ ctx, logoImg: getLogoImg(b.brand), dimpleImg: dimpleImgCache[colourKey], baseColour: BALL_BASE_COLOURS[colourKey] || '#f0f0f0', size: 38 });
+      });
+    });
   }
 
 
