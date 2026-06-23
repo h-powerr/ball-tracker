@@ -876,10 +876,17 @@
     ctx.fillStyle = baseColour;
     ctx.fillRect(0, 0, size, size);
     if (dimpleImg && dimpleImg.complete && dimpleImg.naturalWidth) {
+      // Use same tiling approach as drawSpinFrame so dimple density is consistent
       const iw = dimpleImg.naturalWidth, ih = dimpleImg.naturalHeight;
       const cropSize = Math.min(iw, ih);
       const sx = (iw - cropSize) / 2, sy = (ih - cropSize) / 2;
-      ctx.drawImage(dimpleImg, sx, sy, cropSize, cropSize, 0, 0, size, size);
+      // Tile at same size as spinning version (44px reference tile)
+      const tileSize = 44;
+      for (let x = 0; x < size; x += tileSize) {
+        for (let y = 0; y < size; y += tileSize) {
+          ctx.drawImage(dimpleImg, sx, sy, cropSize, cropSize, x, y, tileSize, tileSize);
+        }
+      }
     }
     const vignette = ctx.createRadialGradient(cx,cx,r*0.5,cx,cx,r);
     vignette.addColorStop(0,'rgba(0,0,0,0)');
@@ -1123,7 +1130,7 @@
     if (!balls.length) { dd.innerHTML = '<div class="dd-empty">No balls found</div>'; return; }
     dd.innerHTML = balls.map((b, i) =>
       `<div class="dd-item" data-i="${i}">
-        ${ballWithLogo(b.brand, b.colour, 36)}
+        <canvas id="ddball-${i}" width="36" height="36" style="border-radius:50%;display:block;flex-shrink:0;box-shadow:0 0 0 1px rgba(0,0,0,0.15)"></canvas>
         <span style="flex:1;min-width:0">
           <strong style="font-size:16px">${escHtml(b.brand)}</strong>
           <span style="font-size:15px"> ${escHtml(b.model)}</span>
@@ -1132,6 +1139,18 @@
         </span>
       </div>`
     ).join("");
+    // Draw each ball using the same canvas renderer as the spinning balls
+    balls.forEach((b, i) => {
+      const el = document.getElementById(`ddball-${i}`);
+      if (!el) return;
+      const dpr = window.devicePixelRatio || 1;
+      el.width  = 36 * dpr; el.height = 36 * dpr;
+      el.style.width = '36px'; el.style.height = '36px';
+      const ctx = el.getContext('2d');
+      ctx.scale(dpr, dpr);
+      const colourKey = (b.colour || 'white').toLowerCase();
+      drawStaticFrame({ ctx, logoImg: getLogoImg(b.brand), dimpleImg: dimpleImgCache[colourKey], baseColour: BALL_BASE_COLOURS[colourKey] || '#f0f0f0', size: 36 });
+    });
   }
   document.addEventListener("click", e => {
     const item = e.target.closest(".dd-item");
@@ -1442,10 +1461,10 @@
             <span style="font-size:14px;font-weight:700;color:var(--ink)">${isToday ? "Today" : escHtml(date)}</span>
             <span style="font-size:12px;font-weight:700;background:var(--border);color:var(--ink);padding:2px 8px;border-radius:20px">${sorted.length} lost</span>
           </div>
-          ${sorted.map(b => `
+          ${sorted.map((b, hi) => `
             <div style="display:flex;align-items:center;gap:10px;padding:8px 20px">
               <span style="font-size:12px;color:var(--muted);flex-shrink:0;min-width:48px">${b.hole != null ? "Hole " + escHtml(String(b.hole)) : "–"}</span>
-              ${ballWithLogo(b.brand, b.colour, 38)}
+              <canvas id="hball-${groupIdx}-${hi}" width="38" height="38" style="border-radius:50%;display:block;flex-shrink:0;box-shadow:0 0 0 1px rgba(0,0,0,0.15)"></canvas>
               <span style="font-size:15px;font-weight:600;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(b.brand)} ${escHtml(b.model)}</span>
               ${isToday ? `<button onclick="promptUndo(${b.rowIndex},'${escAttr(b.brand)}','${escAttr(b.model)}')"
                 style="flex-shrink:0;padding:4px 10px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer">
