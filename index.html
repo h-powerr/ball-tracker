@@ -723,7 +723,8 @@
   let bagNames         = [];
   // Caches
   let cachedLostBalls     = null;
-  let summaryColourFilter = null;
+  let summaryColourFilters = new Set();
+  let summaryBagFilters    = new Set();
   let pendingLostBall     = null;
   let lastSelectedHole    = null;
   let currentCourse       = localStorage.getItem("balltracker-course") || "Drax Golf Club";
@@ -1654,7 +1655,8 @@
 
   // ── Stock Summary ─────────────────────────────────────────────
   function openStockSummary() {
-    summaryColourFilter = null;
+    summaryColourFilters.clear();
+    summaryBagFilters.clear();
     openSheet("sheet-summary");
     if (allBalls.length) {
       renderSummary(allBalls);
@@ -1667,18 +1669,18 @@
     const body = document.getElementById("body-summary");
     if (!balls.length) { body.innerHTML = '<div class="sheet-empty">No balls in stock</div>'; return; }
 
-    // Colour pills
+    // Colour pills (multi-select)
     const totalBalls   = allBalls.reduce((sum, b) => sum + b.count, 0);
     const colourTotals = {};
     for (const b of allBalls) colourTotals[b.colour || "White"] = (colourTotals[b.colour || "White"] || 0) + b.count;
     const pillsHtml =
-      `<div class="colour-pill ${summaryColourFilter === null ? "active" : ""}" onclick="setSummaryFilter(null)">All ${totalBalls}</div>` +
+      `<div class="colour-pill ${summaryColourFilters.size === 0 ? "active" : ""}" onclick="toggleSummaryColour(null)">All ${totalBalls}</div>` +
       ["White","Yellow","Orange","Red","Pink","Blue","Green","Purple","Black"]
         .filter(c => colourTotals[c])
-        .map(c => `<div class="colour-pill ${summaryColourFilter === c ? "active" : ""}" onclick="setSummaryFilter('${escAttr(c)}')">${ballEmoji(c)} ${colourTotals[c]}</div>`)
+        .map(c => `<div class="colour-pill ${summaryColourFilters.has(c) ? "active" : ""}" onclick="toggleSummaryColour('${escAttr(c)}')">${ballEmoji(c)} ${colourTotals[c]}</div>`)
         .join("");
 
-    // Bag totals — 3x2 grid showing all bags (even empty ones)
+    // Bag chips (multi-select filter)
     const bagOrder = ["Cool Bag","Pro V Bag","Premium/Tour","Solid Mid-Range","Budget","Yellow Bag"];
     const bagTotals = {};
     for (const b of allBalls) {
@@ -1688,15 +1690,19 @@
     const bagChipsHtml =
       `<div style="padding:12px 20px 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)">Bag Stock</div>
        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:0 20px 12px;border-bottom:1px solid var(--border-light)">` +
-      bagOrder.map(bg => `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:8px 4px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);min-height:52px">
-        <span style="font-size:10px;font-weight:600;color:var(--muted);text-align:center;line-height:1.1">${escHtml(BAG_DISPLAY[bg] || bg)}</span>
-        <span style="font-size:15px;font-weight:800;color:var(--ink)">${bagTotals[bg] || 0}</span>
-      </div>`).join("") +
+      bagOrder.map(bg => {
+        const sel = summaryBagFilters.has(bg);
+        return `<div onclick="toggleSummaryBag('${escAttr(bg)}')" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:8px 4px;border:1.5px solid ${sel ? 'var(--turf-border)' : 'var(--border)'};border-radius:10px;background:${sel ? 'var(--turf-light)' : 'var(--surface)'};min-height:52px;transition:all 0.15s">
+          <span style="font-size:10px;font-weight:600;color:${sel ? 'var(--turf)' : 'var(--muted)'};text-align:center;line-height:1.1">${escHtml(BAG_DISPLAY[bg] || bg)}</span>
+          <span style="font-size:15px;font-weight:800;color:${sel ? 'var(--turf)' : 'var(--ink)'}">${bagTotals[bg] || 0}</span>
+        </div>`;
+      }).join("") +
       `</div>`;
 
-    // Filtered balls (colour only)
+    // Filtered balls (colour + bag)
     const filtered = allBalls.filter(b =>
-      (!summaryColourFilter || (b.colour || "White") === summaryColourFilter)
+      (summaryColourFilters.size === 0 || summaryColourFilters.has(b.colour || "White")) &&
+      (summaryBagFilters.size === 0 || summaryBagFilters.has(b.bag || "Unknown"))
     );
 
     // Brand accordion
@@ -1726,8 +1732,15 @@
 
     body.innerHTML = `<div class="colour-pills">${pillsHtml}</div>${bagChipsHtml}<div>${accordionHtml || '<div class="sheet-empty" style="padding:20px">No balls match</div>'}</div>`;
   }
-  function setSummaryFilter(colour) {
-    summaryColourFilter = colour;
+  function toggleSummaryColour(colour) {
+    if (colour === null) { summaryColourFilters.clear(); }
+    else if (summaryColourFilters.has(colour)) { summaryColourFilters.delete(colour); }
+    else { summaryColourFilters.add(colour); }
+    renderSummary(allBalls);
+  }
+  function toggleSummaryBag(bag) {
+    if (summaryBagFilters.has(bag)) { summaryBagFilters.delete(bag); }
+    else { summaryBagFilters.add(bag); }
     renderSummary(allBalls);
   }
   function toggleAccordion(idx) {
