@@ -719,7 +719,7 @@
   let selectedBag    = null;
   let addQty         = 1;
   // Bag filter chips
-  let activeBagFilters = new Set();
+  let activeBagFilter = null;
   let bagNames         = [];
   // Caches
   let cachedLostBalls     = null;
@@ -1052,13 +1052,13 @@
       return ai - bi;
     });
     wrap.innerHTML = sorted.map(b =>
-      `<button class="filter-chip ${activeBagFilters.has(b) ? "active" : ""}"
+      `<button class="filter-chip ${activeBagFilter === b ? "active" : ""}"
         onclick="toggleBagFilter('${escAttr(b)}', event)">${escHtml(BAG_DISPLAY[b] || b)}</button>`
     ).join("");
   }
   function toggleBagFilter(bag, event) {
     if (event) { event.preventDefault(); event.stopPropagation(); }
-    if (activeBagFilters.has(bag)) activeBagFilters.delete(bag); else activeBagFilters.add(bag);
+    activeBagFilter = (activeBagFilter === bag) ? null : bag;
     renderBagChips();
     renderDd(getFilteredBallsForSlot(document.getElementById("search-input").value.toLowerCase()));
   }
@@ -1071,7 +1071,7 @@
     const otherKey    = ballKey(otherBall);
     const currentKey  = ballKey(currentBall);
     return allBalls.filter(b => {
-      if (activeBagFilters.size > 0 && !activeBagFilters.has(b.bag || "")) return false;
+      if (activeBagFilter && (b.bag || "") !== activeBagFilter) return false;
       // Block other slot's ball if only 1 in stock
       if (otherKey && ballKey(b) === otherKey && b.count <= 1) return false;
       // Block current slot's own ball if only 1 in stock (can't re-select same ball)
@@ -1157,6 +1157,7 @@
 
   function openDdForSlot(slot) {
     selectingSlot = slot;
+    activeBagFilter = null;
     const isChanging = slot === "play" ? !!selected : !!selectedSecond;
     document.getElementById("select-ball-label").textContent =
       `${isChanging ? "Change" : "Select"} ${slot === "play" ? "In Play Ball" : "Second Ball"}`;
