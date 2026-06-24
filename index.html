@@ -203,11 +203,12 @@
     .colour-btn.selected { border-color: var(--turf-border); background: var(--turf-light); }
     .colour-btn.selected span.label { color: var(--turf); }
     .colour-btn:active { transform: scale(0.95); }
-    .brand-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .brand-grid { display: flex; flex-wrap: wrap; gap: 6px; }
     .brand-btn {
       border: 1.5px solid var(--border); border-radius: 10px; background: var(--surface);
-      cursor: pointer; padding: 8px 6px; font-size: 13px; font-weight: 600;
+      cursor: pointer; padding: 8px 12px; font-size: 13px; font-weight: 600;
       color: var(--ink); text-align: center; transition: all 0.15s; -webkit-appearance: none; line-height: 1.2;
+      white-space: nowrap;
     }
     .brand-btn.selected { border-color: var(--turf-border); background: var(--turf-light); color: var(--turf); }
     .brand-btn:active { transform: scale(0.95); }
@@ -810,21 +811,21 @@
     shine.addColorStop(1,'rgba(255,255,255,0)');
     ctx.fillStyle = shine; ctx.fillRect(0,0,size,size);
     if (logoImg && logoImg.complete && logoImg.naturalWidth) {
-      const angle = spinOffset * (2 * Math.PI) / 96;
-      const cosA = Math.cos(angle);
-      if (cosA > 0.01) {
+      const baseAngle = spinOffset * (2 * Math.PI) / 96;
+      [baseAngle, baseAngle + Math.PI].forEach(angle => {
+        const cosA = Math.cos(angle);
+        if (cosA <= 0) return;
         const logoCX = cx + r * Math.sin(angle);
         const scaleX = cosA;
         const logoH    = size * 0.55;
         const aspect   = logoImg.naturalWidth / logoImg.naturalHeight;
         const apparent = logoH * aspect * scaleX;
-        if (apparent >= 1) {
-          ctx.save();
-          ctx.globalAlpha = Math.min(1, scaleX * 1.1);
-          ctx.drawImage(logoImg, logoCX - apparent/2, cx - logoH/2, apparent, logoH);
-          ctx.restore();
-        }
-      }
+        if (apparent < 1) return;
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, scaleX * 1.1);
+        ctx.drawImage(logoImg, logoCX - apparent/2, cx - logoH/2, apparent, logoH);
+        ctx.restore();
+      });
     }
     ctx.restore();
   }
