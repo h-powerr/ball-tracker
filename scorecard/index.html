@@ -631,6 +631,13 @@
       </div>
       ${perHoleList.length ? `
       <div class="section-label">Per Hole — ${label}</div>
+      <div class="legend" style="margin:0 0 10px">
+        <div class="legend-item"><div class="legend-dot" style="background:${C.gold}"></div>Parred or better</div>
+        <div class="legend-item"><div class="legend-dot" style="background:${C.turf}"></div>Bogey</div>
+        <div class="legend-item"><div class="legend-dot" style="background:${C.pine}"></div>Double bogey+</div>
+        <div class="legend-item"><div class="legend-line" style="border-top:2px dashed ${C.pine}"></div>Trend</div>
+        <div class="legend-item"><div class="legend-line" style="border-top:2px dashed ${C.gold}"></div>Par</div>
+      </div>
       <div class="hole-grid" id="hole-charts-grid"></div>` : ""}
     `;
 
@@ -712,7 +719,7 @@
         pointBackgroundColor: scores.map(s => par ? (s <= par ? C.gold : (s === par+1 ? C.turf : C.pine)) : C.turf),
         pointBorderColor: 'white', pointBorderWidth: 1.5,
       }];
-      if (n >= 2) datasets.push({ data: trendline(scores), borderColor: C.blue, borderWidth: 1.5, borderDash:[4,3], pointRadius:0, fill:false, tension:0 });
+      if (n >= 2) datasets.push({ data: trendline(scores), borderColor: C.pine, borderWidth: 1.5, borderDash:[4,3], pointRadius:0, fill:false, tension:0 });
       if (par) datasets.push({ data: Array(n).fill(par), borderColor: C.gold, borderWidth: 1, borderDash:[2,3], pointRadius:0, fill:false });
 
       chartCharts.push(safeNewChart(el, {
