@@ -441,7 +441,7 @@
     <!-- View buttons -->
     <div class="btn-grid" style="grid-template-columns:repeat(3,1fr);gap:6px">
       <button class="btn btn-outline" onclick="openHoleStats()" style="font-size:11.5px;padding:12px 2px;white-space:nowrap">⛳&nbsp;Hole Stats</button>
-      <a class="btn btn-outline" href="scorecard/index.html" style="font-size:11.5px;padding:12px 2px;text-decoration:none;white-space:nowrap">📊&nbsp;Round Stats</a>
+      <button class="btn btn-outline" onclick="openRoundStats()" style="font-size:11.5px;padding:12px 2px;white-space:nowrap">📊&nbsp;Round Stats</button>
       <button class="btn btn-outline" onclick="openStockSummary()" style="font-size:11.5px;padding:12px 2px;white-space:nowrap">📦&nbsp;Ball Stock</button>
     </div>
   </main>
@@ -668,7 +668,7 @@
     <div class="topnav">
       <button onclick="closeHoleStats()">Ball Tracker</button>
       <button class="active">Hole Stats</button>
-      <a href="scorecard/index.html">Round Stats</a>
+      <button onclick="closeHoleStats(); openRoundStats();">Round Stats</button>
     </div>
   </div>
   <div class="sheet-full-body" id="body-holestats">
@@ -676,7 +676,15 @@
   </div>
 </div>
 
-
+<!-- Round Stats sheet (embeds /scorecard/index.html) -->
+<div class="sheet-full" id="sheet-roundstats">
+  <div class="sheet-handle"></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;border-bottom:1px solid var(--border-light);flex-shrink:0">
+    <span class="sheet-title">Round Stats</span>
+    <button class="sheet-close" onclick="closeRoundStats()">✕</button>
+  </div>
+  <iframe id="roundstats-iframe" title="Round Stats" style="flex:1;width:100%;border:none;background:var(--bg)"></iframe>
+</div>
 
 
 
@@ -1019,7 +1027,9 @@
     loadBagNames();
     loadLostBalls();
     loadHoleStatsForRounds();
-    if (new URLSearchParams(location.search).get("open") === "holestats") openHoleStats();
+    const openParam = new URLSearchParams(location.search).get("open");
+    if (openParam === "holestats") openHoleStats();
+    if (openParam === "roundstats") openRoundStats();
   });
 
   // Close select sheet on outside click only when it's open
@@ -1791,6 +1801,22 @@
   function closeHoleStats() {
     document.getElementById("overlay").classList.remove("open");
     document.getElementById("sheet-holestats").classList.remove("open");
+  }
+
+  // ── Round Stats Sheet (embeds /scorecard/index.html) ────────────
+  let roundStatsLoaded = false;
+  function openRoundStats() {
+    document.getElementById("overlay").classList.add("open");
+    document.getElementById("sheet-roundstats").classList.add("open");
+    const iframe = document.getElementById("roundstats-iframe");
+    if (!roundStatsLoaded) {
+      iframe.src = "scorecard/index.html?embed=1";
+      roundStatsLoaded = true;
+    }
+  }
+  function closeRoundStats() {
+    document.getElementById("overlay").classList.remove("open");
+    document.getElementById("sheet-roundstats").classList.remove("open");
   }
 
   async function loadHoleStats() {

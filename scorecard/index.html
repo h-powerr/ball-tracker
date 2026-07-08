@@ -104,7 +104,7 @@
     .cost-sub { font-size: 12px; color: var(--muted); margin-top: 5px; }
 
     /* Stat cards */
-    .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px 10px; text-align: center; }
     .stat-val { font-size: 22px; font-weight: 800; color: var(--ink); line-height: 1; }
     .stat-val.accent { color: var(--turf); }
@@ -152,7 +152,7 @@
     .tab-content.active { display: block; }
 
     .hole-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    @media (max-width: 480px) { .hole-grid { grid-template-columns: 1fr; } .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px) { .hole-grid { grid-template-columns: 1fr; } .stat-card { padding: 12px 6px; } .stat-val { font-size: 19px; } }
 
     .placeholder-card { text-align: center; padding: 34px 18px; }
     .placeholder-card .pi { font-size: 30px; margin-bottom: 10px; }
@@ -188,7 +188,7 @@
 </head>
 <body>
 <div class="app">
-  <header>
+  <header id="rs-header">
     <div class="header-left">
       <a class="hdr-btn" href="../index.html" title="Ball Tracker" style="text-decoration:none;display:flex;align-items:center">🏠</a>
     </div>
@@ -202,7 +202,7 @@
     </div>
   </header>
 
-  <div class="topnav-wrap">
+  <div class="topnav-wrap" id="rs-topnav">
     <div class="topnav">
       <a href="../index.html">Ball Tracker</a>
       <a href="../index.html?open=holestats">Hole Stats</a>
@@ -214,7 +214,7 @@
     <div class="loading-wrap" id="loading"><div class="spin"></div></div>
   </main>
 
-  <button class="fab" onclick="location.href='add.html'">＋ Add Round</button>
+  <a class="fab" href="add.html" target="_top" style="text-decoration:none">＋ Add Round</a>
 </div>
 
 <div class="overlay" id="overlay-course" onclick="closeCoursePicker()"></div>
@@ -242,6 +242,7 @@
   }
 
   // ── State ─────────────────────────────────────────────────────
+  const isEmbedded = new URLSearchParams(location.search).get("embed") === "1";
   let currentCourse = localStorage.getItem("balltracker-course") || "Drax Golf Club";
   let rawRows   = [];   // flat hole rows from API
   let rounds    = [];   // grouped rounds (all courses)
@@ -255,6 +256,12 @@
 
   // ── Boot ──────────────────────────────────────────────────────
   document.addEventListener("DOMContentLoaded", () => {
+    if (isEmbedded) {
+      // Opened inside the Ball Tracker popup sheet — the sheet already
+      // supplies a title bar and close button, so drop this page's own.
+      document.getElementById("rs-header").style.display = "none";
+      document.getElementById("rs-topnav").style.display = "none";
+    }
     updateCoursePill();
     loadAll();
   });
@@ -453,19 +460,6 @@
     const best   = totals.length ? Math.min(...totals) : null;
     const avg    = totals.length ? round1(totals.reduce((a,b)=>a+b,0)/totals.length) : null;
 
-    // most recent month average
-    let recentMonthAvg = null, recentMonthLabel = "";
-    if (frs.length) {
-      const withTotal = frs.map(r => ({ r, t: roundTotal(r, holeList) })).filter(x => x.t != null);
-      if (withTotal.length) {
-        const lastDate = new Date(withTotal[withTotal.length-1].r.date);
-        const mKey = `${lastDate.getFullYear()}-${lastDate.getMonth()}`;
-        const inMonth = withTotal.filter(x => { const d = new Date(x.r.date); return `${d.getFullYear()}-${d.getMonth()}` === mKey; });
-        recentMonthAvg = round1(inMonth.reduce((a,x)=>a+x.t,0)/inMonth.length);
-        recentMonthLabel = lastDate.toLocaleDateString("en-GB",{month:"short"});
-      }
-    }
-
     const parredInfo = holesParred();
 
     return `
@@ -475,7 +469,6 @@
         <div class="stat-card"><div class="stat-val">${latest ?? "–"}</div><div class="stat-lbl">Latest Round</div></div>
         <div class="stat-card"><div class="stat-val accent">${best ?? "–"}</div><div class="stat-lbl">All-Time Best</div></div>
         <div class="stat-card"><div class="stat-val">${avg ?? "–"}</div><div class="stat-lbl">All-Time Average</div></div>
-        <div class="stat-card"><div class="stat-val">${recentMonthAvg ?? "–"}</div><div class="stat-lbl">${recentMonthLabel ? recentMonthLabel+" " : ""}Avg</div></div>
       </div>
       <div class="parred-card">
         <div>
