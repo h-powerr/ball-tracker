@@ -327,6 +327,16 @@
     /* Bar chart wrapper (bars themselves are inline-styled) */
     .barchart-wrap { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
     #rate-banner.show { transform: translateY(0) !important; opacity: 1 !important; }
+
+    /* Shared 3-way top nav (Ball Tracker / Hole Stats / Round Stats) */
+    .topnav-wrap { padding: 10px 16px 0; flex-shrink: 0; }
+    .topnav { display: flex; gap: 6px; background: var(--bg); border-radius: 10px; padding: 4px; }
+    .topnav a, .topnav button {
+      flex: 1; text-align: center; padding: 8px 6px; border-radius: 8px; font-size: 12.5px; font-weight: 700;
+      color: var(--muted); text-decoration: none; border: none; background: none; cursor: pointer;
+      transition: background 0.15s, color 0.15s; white-space: nowrap; -webkit-appearance: none;
+    }
+    .topnav .active { background: var(--surface); color: var(--turf); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
   </style>
 </head>
 <body>
@@ -429,9 +439,10 @@
     </div>
 
     <!-- View buttons -->
-    <div class="btn-grid">
-      <button class="btn btn-outline" onclick="openHoleStats()" style="font-size:14px;padding:12px">⛳&nbsp; Hole Stats</button>
-      <button class="btn btn-outline" onclick="openStockSummary()" style="font-size:14px;padding:12px">📦&nbsp; Ball Stock</button>
+    <div class="btn-grid" style="grid-template-columns:repeat(3,1fr);gap:6px">
+      <button class="btn btn-outline" onclick="openHoleStats()" style="font-size:11.5px;padding:12px 2px;white-space:nowrap">⛳&nbsp;Hole Stats</button>
+      <a class="btn btn-outline" href="scorecard/index.html" style="font-size:11.5px;padding:12px 2px;text-decoration:none;white-space:nowrap">📊&nbsp;Round Stats</a>
+      <button class="btn btn-outline" onclick="openStockSummary()" style="font-size:11.5px;padding:12px 2px;white-space:nowrap">📦&nbsp;Ball Stock</button>
     </div>
   </main>
 </div>
@@ -651,6 +662,13 @@
     </button>
     <div style="display:flex;justify-content:flex-end">
       <button class="sheet-close" onclick="closeHoleStats()">✕</button>
+    </div>
+  </div>
+  <div class="topnav-wrap">
+    <div class="topnav">
+      <button onclick="closeHoleStats()">Ball Tracker</button>
+      <button class="active">Hole Stats</button>
+      <a href="scorecard/index.html">Round Stats</a>
     </div>
   </div>
   <div class="sheet-full-body" id="body-holestats">
@@ -1001,6 +1019,7 @@
     loadBagNames();
     loadLostBalls();
     loadHoleStatsForRounds();
+    if (new URLSearchParams(location.search).get("open") === "holestats") openHoleStats();
   });
 
   // Close select sheet on outside click only when it's open

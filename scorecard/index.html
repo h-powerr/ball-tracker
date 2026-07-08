@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#111111">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Round Stats — Ball Tracker</title>
+  <link rel="apple-touch-icon" href="../icon.png">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --pine:        #111111;
+      --turf:        #e3000f;
+      --turf-light:  #fff0f0;
+      --turf-border: #e3000f;
+      --hazard:      #7f1d1d;
+      --bg:          #f8f7f4;
+      --surface:     #ffffff;
+      --ink:         #111827;
+      --muted:       #6b7280;
+      --border:      #e5e7eb;
+      --border-light:#f3f4f6;
+      --radius:      14px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html { height: 100%; font-size: 16px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; background: var(--bg); }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--ink); min-height: 100%;
+    }
+    .app { width: 100%; min-height: 100vh; display: flex; flex-direction: column; }
+
+    header {
+      background: var(--pine); color: #fff;
+      padding: 14px 16px;
+      padding-top: max(14px, env(safe-area-inset-top));
+      display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+      flex-shrink: 0;
+    }
+    .hdr-btn {
+      background: none; border: none; color: rgba(255,255,255,0.6);
+      font-size: 20px; cursor: pointer; padding: 6px; line-height: 1;
+      border-radius: 8px; transition: color 0.15s, background 0.15s;
+    }
+    .hdr-btn:active { color: white; background: rgba(255,255,255,0.1); }
+    .course-pill {
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
+      padding: 8px 14px; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; gap: 6px; max-width: 220px;
+    }
+    .course-pill span.pin { font-size: 13px; opacity: 0.7; }
+    .course-pill span.lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .course-pill span.car { font-size: 11px; opacity: 0.6; }
+    .header-right { display: flex; justify-content: flex-end; }
+    .header-left { display: flex; }
+
+    /* Top segmented nav */
+    .topnav-wrap { padding: 10px 16px 0; max-width: 640px; width: 100%; margin: 0 auto; }
+    .topnav {
+      display: flex; gap: 6px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 4px;
+    }
+    .topnav a, .topnav button {
+      flex: 1; text-align: center; padding: 9px 6px; border-radius: 9px; font-size: 12.5px; font-weight: 700;
+      color: var(--muted); text-decoration: none; border: none; background: none; cursor: pointer;
+      transition: background 0.15s, color 0.15s; white-space: nowrap; -webkit-appearance: none;
+    }
+    .topnav .active { background: var(--turf-light); color: var(--turf); }
+
+    main {
+      padding: 14px 16px calc(env(safe-area-inset-bottom) + 28px);
+      display: flex; flex-direction: column; gap: 6px;
+      max-width: 640px; width: 100%; margin: 0 auto; flex: 1;
+    }
+
+    .section-label {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--muted); margin: 18px 0 8px;
+    }
+    .section-label:first-child { margin-top: 4px; }
+
+    .card {
+      background: var(--surface); border-radius: var(--radius); padding: 16px;
+      margin-bottom: 10px; border: 1px solid var(--border);
+    }
+    .card-title { font-size: 14px; font-weight: 700; margin-bottom: 3px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--ink); }
+    .card-meta { font-size: 11.5px; color: var(--muted); margin-bottom: 14px; }
+    .badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 700; background: var(--border-light); color: var(--muted); }
+    .badge-parred { background: var(--turf-light); color: var(--turf); }
+
+    /* Membership */
+    .member-banner {
+      background: var(--pine); color: #fff; border-radius: var(--radius); padding: 14px 18px;
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+    }
+    .member-label { font-size: 10.5px; color: rgba(255,255,255,0.55); text-transform: uppercase; letter-spacing: 0.1em; }
+    .member-since { font-size: 13px; color: rgba(255,255,255,0.85); margin-top: 3px; }
+    .member-duration { font-size: 16px; color: #fff; font-weight: 800; }
+
+    /* Cost tracker */
+    .cost-card { display: flex; align-items: center; justify-content: space-between; }
+    .cost-val { font-size: 30px; font-weight: 800; color: var(--turf); line-height: 1; }
+    .cost-sub { font-size: 12px; color: var(--muted); margin-top: 5px; }
+
+    /* Stat cards */
+    .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px 10px; text-align: center; }
+    .stat-val { font-size: 22px; font-weight: 800; color: var(--ink); line-height: 1; }
+    .stat-val.accent { color: var(--turf); }
+    .stat-lbl { font-size: 10px; color: var(--muted); margin-top: 5px; text-transform: uppercase; letter-spacing: 0.06em; line-height: 1.3; }
+
+    .format-toggle { display: flex; gap: 6px; background: var(--bg); border-radius: 10px; padding: 4px; margin-bottom: 10px; }
+    .format-toggle button {
+      flex: 1; padding: 8px; border-radius: 8px; font-size: 12.5px; font-weight: 700; color: var(--muted);
+      border: none; background: none; cursor: pointer; -webkit-appearance: none;
+    }
+    .format-toggle button.active { background: var(--surface); color: var(--turf); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+    .parred-card {
+      display: flex; align-items: center; justify-content: space-between; background: var(--turf-light);
+      border: 1px solid #ffd6d6; border-radius: 12px; padding: 12px 14px; margin-top: 8px;
+    }
+    .parred-card .pv { font-size: 18px; font-weight: 800; color: var(--turf); }
+    .parred-card .pl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+    /* Charts */
+    .chart-wrap { position: relative; height: 150px; }
+    .chart-wrap-lg { position: relative; height: 220px; }
+
+    .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--muted); }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .legend-line { width: 16px; height: 2px; flex-shrink: 0; }
+
+    .monthly-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+    .month-stat { background: var(--border-light); border-radius: 10px; padding: 10px; text-align: center; }
+    .month-stat .mv { font-size: 17px; color: var(--ink); font-weight: 800; }
+    .month-stat .ml { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 3px; }
+    .month-stat .mn { font-size: 9.5px; color: var(--muted); margin-top: 1px; }
+    .month-stat.recent { background: var(--turf-light); }
+    .month-stat.recent .mv { color: var(--turf); }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 6px; margin: 10px 0 14px; background: var(--bg); border-radius: 10px; padding: 4px; }
+    .tab {
+      flex: 1; text-align: center; padding: 9px; border-radius: 8px; font-size: 12.5px; font-weight: 700;
+      cursor: pointer; color: var(--muted); transition: all 0.15s; border: none; background: none; -webkit-appearance: none;
+    }
+    .tab.active { background: var(--surface); color: var(--turf); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .hole-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 480px) { .hole-grid { grid-template-columns: 1fr; } .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    .placeholder-card { text-align: center; padding: 34px 18px; }
+    .placeholder-card .pi { font-size: 30px; margin-bottom: 10px; }
+    .placeholder-card .pt { font-weight: 700; margin-bottom: 4px; color: var(--ink); }
+    .placeholder-card .ps { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+    .fab {
+      position: fixed; right: 18px; bottom: calc(env(safe-area-inset-bottom) + 18px); z-index: 50;
+      background: var(--pine); color: #fff; border: none; border-radius: 30px; padding: 14px 20px;
+      font-size: 14px; font-weight: 700; box-shadow: 0 6px 18px rgba(0,0,0,0.25); cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .fab:active { transform: scale(0.96); }
+
+    .loading-wrap { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .spin { display: inline-block; width: 22px; height: 22px; border: 2.5px solid var(--border); border-top-color: var(--turf); border-radius: 50%; animation: spin 0.75s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Course picker modal (reused pattern) */
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 200; }
+    .overlay.open { display: block; }
+    #modal-course {
+      display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 201;
+      background: var(--surface); border-radius: 20px 20px 0 0; padding: 20px 16px;
+      padding-bottom: max(20px, env(safe-area-inset-bottom)); box-shadow: 0 -6px 30px rgba(0,0,0,0.2);
+    }
+    .course-chip {
+      padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface);
+      color: var(--ink); font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    .course-chip.active { border-color: var(--turf-border); background: var(--turf-light); color: var(--turf); }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="header-left">
+      <a class="hdr-btn" href="../index.html" title="Ball Tracker" style="text-decoration:none;display:flex;align-items:center">🏠</a>
+    </div>
+    <button class="course-pill" id="course-pill" onclick="openCoursePicker()">
+      <span class="pin">📍</span>
+      <span class="lbl" id="course-pill-label">Drax Golf Club</span>
+      <span class="car">▾</span>
+    </button>
+    <div class="header-right">
+      <button class="hdr-btn" onclick="loadAll()" title="Refresh">↺</button>
+    </div>
+  </header>
+
+  <div class="topnav-wrap">
+    <div class="topnav">
+      <a href="../index.html">Ball Tracker</a>
+      <a href="../index.html?open=holestats">Hole Stats</a>
+      <button class="active">Round Stats</button>
+    </div>
+  </div>
+
+  <main id="main-content">
+    <div class="loading-wrap" id="loading"><div class="spin"></div></div>
+  </main>
+
+  <button class="fab" onclick="location.href='add.html'">＋ Add Round</button>
+</div>
+
+<div class="overlay" id="overlay-course" onclick="closeCoursePicker()"></div>
+<div id="modal-course">
+  <div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px"></div>
+  <div style="font-size:17px;font-weight:700;color:var(--ink);margin-bottom:14px">Switch Course</div>
+  <div id="course-chips-list" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+</div>
+
+<script>
+  // ── CONFIG ────────────────────────────────────────────────────
+  const API = "https://script.google.com/macros/s/AKfycbxmQvGApPfL2yxpcd3OMJRogzwmZ0PBxuTIhD3tFzqUZUXlpPcO7oKavoi1jkGuOGTQ/exec";
+  const MEMBER_SINCE = new Date("2026-05-16T00:00:00");
+  const COST_9  = 18.50;
+  const COST_18 = 30.00;
+
+  // ── API ───────────────────────────────────────────────────────
+  async function apiGet(action, params) {
+    const url = new URL(API);
+    url.searchParams.set("action", action);
+    if (params) Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+    const res = await fetch(url.toString());
+    const text = await res.text();
+    try { return JSON.parse(text); } catch(e) { throw new Error("bad-response"); }
+  }
+
+  // ── State ─────────────────────────────────────────────────────
+  let currentCourse = localStorage.getItem("balltracker-course") || "Drax Golf Club";
+  let rawRows   = [];   // flat hole rows from API
+  let rounds    = [];   // grouped rounds (all courses)
+  let parMap    = {};   // { course: { hole: par } }
+  let activeFormat = 18;
+  let activeTab = "front";
+
+  function escHtml(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  function escAttr(s) { return String(s).replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+  function round1(n) { return Math.round(n * 10) / 10; }
+
+  // ── Boot ──────────────────────────────────────────────────────
+  document.addEventListener("DOMContentLoaded", () => {
+    updateCoursePill();
+    loadAll();
+  });
+
+  async function loadAll() {
+    document.getElementById("loading").style.display = "block";
+    try {
+      const [roundsRes, parRes] = await Promise.all([
+        apiGet("rounds"),
+        apiGet("courseParData"),
+      ]);
+      rawRows = Array.isArray(roundsRes) ? roundsRes : [];
+      const parRows = Array.isArray(parRes) ? parRes : [];
+      parMap = {};
+      parRows.forEach(r => {
+        if (!r.course || !r.hole || !r.par) return;
+        parMap[r.course] = parMap[r.course] || {};
+        parMap[r.course][r.hole] = r.par;
+      });
+      groupRounds();
+      render();
+    } catch(e) {
+      document.getElementById("main-content").innerHTML =
+        `<div class="loading-wrap">Couldn't load Round Stats.<br>Check your connection and refresh.</div>`;
+    }
+  }
+
+  function groupRounds() {
+    const byId = {};
+    rawRows.forEach(r => {
+      if (!byId[r.roundId]) byId[r.roundId] = { roundId: r.roundId, date: r.date, course: r.course, format: r.format, holes: {} };
+      byId[r.roundId].holes[r.hole] = { score: r.score, putts: r.putts, penalties: r.penalties, fairwayHit: r.fairwayHit, gir: r.gir };
+    });
+    rounds = Object.values(byId).sort((a,b) => new Date(a.date) - new Date(b.date));
+  }
+
+  // ── Course switching ─────────────────────────────────────────
+  function updateCoursePill() {
+    document.getElementById("course-pill-label").textContent = currentCourse;
+  }
+  function openCoursePicker() {
+    const courses = Array.from(new Set(rounds.map(r => r.course).filter(Boolean)));
+    if (!courses.includes(currentCourse)) courses.unshift(currentCourse);
+    if (!courses.includes("Drax Golf Club")) courses.unshift("Drax Golf Club");
+    const wrap = document.getElementById("course-chips-list");
+    wrap.innerHTML = courses.map(c =>
+      `<button class="course-chip ${c === currentCourse ? 'active' : ''}" onclick="pickCourse('${escAttr(c)}')">${escHtml(c)}</button>`
+    ).join("");
+    document.getElementById("overlay-course").classList.add("open");
+    document.getElementById("modal-course").style.display = "block";
+  }
+  function closeCoursePicker() {
+    document.getElementById("overlay-course").classList.remove("open");
+    document.getElementById("modal-course").style.display = "none";
+  }
+  function pickCourse(c) {
+    currentCourse = c;
+    localStorage.setItem("balltracker-course", c);
+    updateCoursePill();
+    closeCoursePicker();
+    render();
+  }
+
+  // ── Membership duration ──────────────────────────────────────
+  function memberDurationText() {
+    const now = new Date();
+    const days = Math.max(0, Math.floor((now - MEMBER_SINCE) / 86400000));
+    const months = Math.floor(days / 30);
+    const rem = days % 30;
+    const weeks = Math.floor(rem / 7);
+    const restDays = rem % 7;
+    let parts = [];
+    if (months > 0) parts.push(`${months} Month${months !== 1 ? "s" : ""}`);
+    if (weeks > 0 && months === 0) parts.push(`${weeks} Week${weeks !== 1 ? "s" : ""}`);
+    if (parts.length === 0) parts.push(`${days} Day${days !== 1 ? "s" : ""}`);
+    return parts.join(", ");
+  }
+
+  // ── Trend line (least squares) ──────────────────────────────
+  function trendline(data) {
+    const n = data.length;
+    if (n < 2) return data.slice();
+    const xm = (n - 1) / 2;
+    const ym = data.reduce((a,b) => a+b, 0) / n;
+    let num = 0, den = 0;
+    data.forEach((y,x) => { num += (x - xm) * (y - ym); den += (x - xm) ** 2; });
+    const s = den ? num / den : 0, b = ym - s * xm;
+    return data.map((_,x) => Math.round((s*x + b) * 10) / 10);
+  }
+
+  const C = { turf: '#e3000f', turfSoft: 'rgba(227,0,15,0.08)', pine: '#111111', muted: '#9aa0a6', gold: '#b8860b', blue: '#2563eb' };
+  const chartCharts = []; // track instances so we can destroy on re-render
+  function destroyCharts() { chartCharts.forEach(c => c && c.destroy()); chartCharts.length = 0; }
+  // Chart.js loads from a CDN — if that fails (offline, flaky network), stat
+  // cards should still render. Charts degrade to an inline message instead.
+  function safeNewChart(el, config) {
+    if (!el) return null;
+    if (typeof Chart === "undefined") {
+      const wrap = el.closest(".chart-wrap, .chart-wrap-lg") || el.parentElement;
+      if (wrap) wrap.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:12px;color:var(--muted);text-align:center;padding:0 12px">Chart library failed to load — check your connection and refresh.</div>';
+      return null;
+    }
+    try { return new Chart(el, config); }
+    catch(e) { console.error("Chart render failed", e); return null; }
+  }
+
+  // ── Data helpers, scoped to currentCourse ───────────────────
+  function courseRounds() {
+    return rounds.filter(r => r.course === currentCourse);
+  }
+  function formatRounds(fmt) {
+    return courseRounds().filter(r => Number(r.format) === fmt);
+  }
+  function roundTotal(r, holeList) {
+    let sum = 0, count = 0;
+    holeList.forEach(h => { const s = r.holes[h] && r.holes[h].score; if (s != null) { sum += s; count++; } });
+    return count === holeList.length ? sum : null;
+  }
+  const FRONT9 = [1,2,3,4,5,6,7,8,9];
+  const BACK9  = [10,11,12,13,14,15,16,17,18];
+  const ALL18  = FRONT9.concat(BACK9);
+
+  function coursePar(holeList) {
+    const pm = parMap[currentCourse] || {};
+    if (!holeList.every(h => pm[h])) return null;
+    return holeList.reduce((s,h) => s + pm[h], 0);
+  }
+
+  // ═════════════════════════════════════════════════════════════
+  //  RENDER
+  // ═════════════════════════════════════════════════════════════
+  function render() {
+    destroyCharts();
+    const cr = courseRounds();
+    const formats = Array.from(new Set(cr.map(r => Number(r.format))));
+    if (!formats.includes(activeFormat)) activeFormat = formats.includes(18) ? 18 : (formats[0] || 18);
+
+    const html = `
+      ${renderMembership()}
+      ${renderCost()}
+      ${renderOverview(formats)}
+      ${renderMonthly()}
+      ${renderTabsShell()}
+    `;
+    document.getElementById("main-content").innerHTML = html;
+    try { renderMonthlyChart(); } catch(e) { console.error("Monthly chart failed", e); }
+    try { renderTabCharts(activeTab); } catch(e) { console.error("Tab charts failed", e); }
+  }
+
+  // ── Membership + cost (global, not course-scoped) ────────────
+  function renderMembership() {
+    return `
+      <div class="section-label">Membership</div>
+      <div class="member-banner">
+        <div>
+          <div class="member-label">Member Since</div>
+          <div class="member-since">${MEMBER_SINCE.toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="member-label">Duration</div>
+          <div class="member-duration">${memberDurationText()}</div>
+        </div>
+      </div>`;
+  }
+  function renderCost() {
+    const eligible = rounds.filter(r => new Date(r.date) >= MEMBER_SINCE && (roundTotal(r, r.format===18?ALL18:FRONT9) != null));
+    const n9  = eligible.filter(r => Number(r.format) === 9).length;
+    const n18 = eligible.filter(r => Number(r.format) === 18).length;
+    const total = n9 * COST_9 + n18 * COST_18;
+    return `
+      <div class="section-label">Cost Tracker</div>
+      <div class="card cost-card">
+        <div>
+          <div class="cost-val">£${total.toFixed(2)}</div>
+          <div class="cost-sub">${n9 + n18} round${(n9+n18)!==1?"s":""} since ${MEMBER_SINCE.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</div>
+        </div>
+        <div style="text-align:right;font-size:11px;color:var(--muted)">
+          ${n9} × 9-hole (£${COST_9.toFixed(2)})<br>${n18} × 18-hole (£${COST_18.toFixed(2)})
+        </div>
+      </div>`;
+  }
+
+  // ── Overview stat cards (course + format scoped) ─────────────
+  function renderOverview(formats) {
+    const toggle = formats.length > 1 ? `
+      <div class="format-toggle">
+        ${formats.includes(9)  ? `<button class="${activeFormat===9 ?'active':''}" onclick="setFormat(9)">9-Hole</button>` : ""}
+        ${formats.includes(18) ? `<button class="${activeFormat===18?'active':''}" onclick="setFormat(18)">18-Hole</button>` : ""}
+      </div>` : "";
+
+    const holeList = activeFormat === 18 ? ALL18 : FRONT9;
+    const frs = formatRounds(activeFormat);
+    const totals = frs.map(r => roundTotal(r, holeList)).filter(t => t != null);
+
+    const latest = frs.length ? roundTotal(frs[frs.length-1], holeList) : null;
+    const best   = totals.length ? Math.min(...totals) : null;
+    const avg    = totals.length ? round1(totals.reduce((a,b)=>a+b,0)/totals.length) : null;
+
+    // most recent month average
+    let recentMonthAvg = null, recentMonthLabel = "";
+    if (frs.length) {
+      const withTotal = frs.map(r => ({ r, t: roundTotal(r, holeList) })).filter(x => x.t != null);
+      if (withTotal.length) {
+        const lastDate = new Date(withTotal[withTotal.length-1].r.date);
+        const mKey = `${lastDate.getFullYear()}-${lastDate.getMonth()}`;
+        const inMonth = withTotal.filter(x => { const d = new Date(x.r.date); return `${d.getFullYear()}-${d.getMonth()}` === mKey; });
+        recentMonthAvg = round1(inMonth.reduce((a,x)=>a+x.t,0)/inMonth.length);
+        recentMonthLabel = lastDate.toLocaleDateString("en-GB",{month:"short"});
+      }
+    }
+
+    const parredInfo = holesParred();
+
+    return `
+      <div class="section-label">Overview</div>
+      ${toggle}
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-val">${latest ?? "–"}</div><div class="stat-lbl">Latest Round</div></div>
+        <div class="stat-card"><div class="stat-val accent">${best ?? "–"}</div><div class="stat-lbl">All-Time Best</div></div>
+        <div class="stat-card"><div class="stat-val">${avg ?? "–"}</div><div class="stat-lbl">All-Time Average</div></div>
+        <div class="stat-card"><div class="stat-val">${recentMonthAvg ?? "–"}</div><div class="stat-lbl">${recentMonthLabel ? recentMonthLabel+" " : ""}Avg</div></div>
+      </div>
+      <div class="parred-card">
+        <div>
+          <div class="pv">${parredInfo.text}</div>
+          <div class="pl">Holes Parred</div>
+        </div>
+        <div style="font-size:22px">⛳</div>
+      </div>`;
+  }
+  function setFormat(f) { activeFormat = f; render(); }
+
+  function holesParred() {
+    const pm = parMap[currentCourse] || {};
+    const cr = courseRounds();
+    let known = 0, parred = 0;
+    for (let h = 1; h <= 18; h++) {
+      const par = pm[h];
+      if (!par) continue;
+      const scores = cr.map(r => r.holes[h] && r.holes[h].score).filter(s => s != null);
+      if (!scores.length) continue;
+      known++;
+      if (Math.min(...scores) <= par) parred++;
+    }
+    return { parred, known, text: known ? `${parred} / ${known}` : "–" };
+  }
+
+  // ── Monthly average chart ────────────────────────────────────
+  function monthlyBuckets() {
+    const holeList = activeFormat === 18 ? ALL18 : FRONT9;
+    const frs = formatRounds(activeFormat);
+    const buckets = {}; // key "YYYY-M" -> {label, totals:[]}
+    frs.forEach(r => {
+      const t = roundTotal(r, holeList);
+      if (t == null) return;
+      const d = new Date(r.date);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      if (!buckets[key]) buckets[key] = { key, y: d.getFullYear(), m: d.getMonth(), totals: [] };
+      buckets[key].totals.push(t);
+    });
+    return Object.values(buckets).sort((a,b) => a.y - b.y || a.m - b.m);
+  }
+  function renderMonthly() {
+    const buckets = monthlyBuckets();
+    if (buckets.length < 2) {
+      return `
+      <div class="section-label">Monthly Average</div>
+      <div class="card placeholder-card">
+        <div class="pi">📅</div>
+        <div class="pt">Not enough months yet</div>
+        <div class="ps">Play rounds across at least 2 different months to unlock this chart.</div>
+      </div>`;
+    }
+    const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const gridHtml = buckets.slice(-3).map((b,i,arr) => {
+      const avg = round1(b.totals.reduce((a,x)=>a+x,0)/b.totals.length);
+      const isRecent = i === arr.length - 1;
+      return `<div class="month-stat ${isRecent?'recent':''}">
+        <div class="mv">${avg}</div>
+        <div class="ml">${monthNames[b.m]} ${b.y}</div>
+        <div class="mn">${b.totals.length} round${b.totals.length!==1?"s":""}</div>
+      </div>`;
+    }).join("");
+    return `
+      <div class="section-label">Monthly Average</div>
+      <div class="card">
+        <div class="card-title">Gross Average per Month</div>
+        <div class="card-meta">${activeFormat}-hole rounds at ${escHtml(currentCourse)}</div>
+        <div class="monthly-grid">${gridHtml}</div>
+        <div class="chart-wrap"><canvas id="monthlyChart"></canvas></div>
+      </div>`;
+  }
+  function renderMonthlyChart() {
+    const el = document.getElementById("monthlyChart");
+    if (!el) return;
+    const buckets = monthlyBuckets();
+    const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const labels = buckets.map(b => `${monthNames[b.m]} ${String(b.y).slice(2)}`);
+    const data = buckets.map(b => round1(b.totals.reduce((a,x)=>a+x,0)/b.totals.length));
+    const n = buckets.length;
+    chartCharts.push(safeNewChart(el, {
+      type: "bar",
+      data: { labels, datasets: [{
+        data,
+        backgroundColor: data.map((_,i) => `rgba(227,0,15,${0.25 + 0.55*(i/(Math.max(1,n-1)))})`),
+        borderColor: C.turf, borderWidth: 1.5, borderRadius: 6,
+      }]},
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display:false }, tooltip: { callbacks: { label: ctx => `Avg: ${ctx.parsed.y}` } } },
+        scales: {
+          x: { ticks: { color: C.muted, font:{size:9} }, grid: { display:false } },
+          y: { ticks: { color: C.muted, font:{size:10} }, grid: { color:'#f0f0ee' } },
+        }
+      }
+    }));
+  }
+
+  // ── Tabs shell ────────────────────────────────────────────────
+  function renderTabsShell() {
+    return `
+      <div class="section-label">Score Charts</div>
+      <div class="tabs">
+        <button class="tab ${activeTab==='front'?'active':''}" onclick="switchTab('front',this)">Front 9</button>
+        <button class="tab ${activeTab==='back'?'active':''}" onclick="switchTab('back',this)">Back 9</button>
+        <button class="tab ${activeTab==='full18'?'active':''}" onclick="switchTab('full18',this)">Full 18</button>
+      </div>
+      <div id="tab-body"></div>`;
+  }
+  function switchTab(name, btn) {
+    activeTab = name;
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    btn.classList.add("active");
+    renderTabCharts(name);
+  }
+
+  function renderTabCharts(tab) {
+    const body = document.getElementById("tab-body");
+    if (!body) return;
+
+    let holeList, label, roundsForTab;
+    if (tab === "front") {
+      holeList = FRONT9; label = "Front 9";
+      roundsForTab = courseRounds().filter(r => roundTotal(r, FRONT9) != null);
+    } else if (tab === "back") {
+      holeList = BACK9; label = "Back 9";
+      roundsForTab = courseRounds().filter(r => roundTotal(r, BACK9) != null);
+    } else {
+      holeList = ALL18; label = "Full 18";
+      roundsForTab = courseRounds().filter(r => roundTotal(r, ALL18) != null);
+    }
+    roundsForTab.sort((a,b) => new Date(a.date) - new Date(b.date));
+
+    if (roundsForTab.length < 3) {
+      const need = 3 - roundsForTab.length;
+      body.innerHTML = `
+        <div class="card placeholder-card">
+          <div class="pi">⛳</div>
+          <div class="pt">${need} more round${need!==1?"s":""} needed to unlock this chart</div>
+          <div class="ps">${label} needs at least 3 complete rounds at ${escHtml(currentCourse)}. You have ${roundsForTab.length}.</div>
+        </div>`;
+      return;
+    }
+
+    const par = coursePar(holeList);
+    const bogeyGolf = par != null ? par + holeList.length : null;
+    const dblBogeyGolf = par != null ? par + holeList.length * 2 : null;
+    const perHoleList = tab === "back" ? BACK9 : (tab === "front" ? FRONT9 : []);
+
+    body.innerHTML = `
+      <div class="card">
+        <div class="card-title">Round by Round — ${label}</div>
+        <div class="card-meta">${par ? `Par ${par} · ` : ""}${roundsForTab.length} rounds tracked at ${escHtml(currentCourse)}</div>
+        <div class="chart-wrap-lg"><canvas id="roundChart"></canvas></div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:${C.turf}"></div>Gross score</div>
+          <div class="legend-item"><div class="legend-line" style="border-top:2px dashed ${C.pine}"></div>Trend</div>
+          ${bogeyGolf ? `<div class="legend-item"><div class="legend-line" style="border-top:2px dashed ${C.blue}"></div>Bogey golf (${bogeyGolf})</div>` : ""}
+          ${dblBogeyGolf ? `<div class="legend-item"><div class="legend-line" style="border-top:2px dashed ${C.gold}"></div>Dbl bogey golf (${dblBogeyGolf})</div>` : ""}
+        </div>
+      </div>
+      ${perHoleList.length ? `
+      <div class="section-label">Per Hole — ${label}</div>
+      <div class="hole-grid" id="hole-charts-grid"></div>` : ""}
+    `;
+
+    renderRoundChart(roundsForTab, holeList, bogeyGolf, dblBogeyGolf);
+    if (perHoleList.length) renderHoleCharts(perHoleList, roundsForTab);
+  }
+
+  function renderRoundChart(roundsForTab, holeList, bogeyGolf, dblBogeyGolf) {
+    const el = document.getElementById("roundChart");
+    if (!el) return;
+    const labels = roundsForTab.map(r => new Date(r.date).toLocaleDateString("en-GB",{day:"2-digit",month:"2-digit"}));
+    const totals = roundsForTab.map(r => roundTotal(r, holeList));
+    const n = totals.length;
+    const best = Math.min(...totals);
+    const datasets = [
+      {
+        label: "Gross", data: totals, borderColor: C.turf, backgroundColor: 'rgba(227,0,15,0.07)',
+        borderWidth: 2.5, fill: true, tension: 0.3,
+        pointRadius: totals.map(t => t===best ? 6 : 4),
+        pointBackgroundColor: totals.map(t => t===best ? C.gold : C.turf),
+        pointBorderColor: 'white', pointBorderWidth: 2,
+      },
+      { label: "Trend", data: trendline(totals), borderColor: C.pine, borderWidth: 1.5, borderDash:[5,4], pointRadius:0, fill:false },
+    ];
+    if (bogeyGolf)    datasets.push({ label:`Bogey golf`, data: Array(n).fill(bogeyGolf), borderColor: C.blue, borderWidth:1, borderDash:[3,3], pointRadius:0, fill:false });
+    if (dblBogeyGolf) datasets.push({ label:`Dbl bogey`, data: Array(n).fill(dblBogeyGolf), borderColor: C.gold, borderWidth:1, borderDash:[3,3], pointRadius:0, fill:false });
+
+    chartCharts.push(safeNewChart(el, {
+      type: "line",
+      data: { labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display:false } },
+        scales: {
+          x: { ticks: { color: C.muted, font:{size:9}, maxRotation:45 }, grid: { display:false } },
+          y: { ticks: { color: C.muted, font:{size:10} }, grid: { color:'#f0f0ee' } },
+        }
+      }
+    }));
+  }
+
+  function renderHoleCharts(holeList, roundsForTab) {
+    const grid = document.getElementById("hole-charts-grid");
+    if (!grid || !holeList.length) return;
+    const pm = parMap[currentCourse] || {};
+
+    grid.innerHTML = holeList.map(h => {
+      const par = pm[h];
+      const scores = roundsForTab.map(r => r.holes[h] && r.holes[h].score).filter(s => s != null);
+      const best = scores.length ? Math.min(...scores) : null;
+      const avg = scores.length ? round1(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
+      const parredCount = par ? scores.filter(s => s <= par).length : 0;
+      return `
+        <div class="card">
+          <div class="card-title">Hole ${h}
+            ${par ? `<span class="badge">Par ${par}</span>` : `<span class="badge">Par unknown</span>`}
+            ${par && parredCount ? `<span class="badge badge-parred">✓ Parred ×${parredCount}</span>` : ""}
+          </div>
+          <div class="card-meta">${scores.length ? `Best ${best} · Avg ${avg}` : "No data yet"}</div>
+          <div class="chart-wrap">${scores.length ? `<canvas id="hole-${h}"></canvas>` : `<div class="placeholder-card" style="padding:16px"><div class="ps">Play this hole to see its chart.</div></div>`}</div>
+        </div>`;
+    }).join("");
+
+    holeList.forEach(h => {
+      const el = document.getElementById(`hole-${h}`);
+      if (!el) return;
+      const par = pm[h];
+      const pairs = roundsForTab
+        .map(r => ({ date: r.date, score: r.holes[h] && r.holes[h].score }))
+        .filter(p => p.score != null);
+      const labels = pairs.map(p => new Date(p.date).toLocaleDateString("en-GB",{day:"2-digit",month:"2-digit"}));
+      const scores = pairs.map(p => p.score);
+      const n = scores.length;
+
+      const datasets = [{
+        data: scores, borderColor: C.turf, backgroundColor: 'rgba(227,0,15,0.06)',
+        borderWidth: 2, fill: true, tension: 0.3,
+        pointRadius: scores.map(s => par && s <= par ? 5 : 3),
+        pointBackgroundColor: scores.map(s => par ? (s <= par ? C.gold : (s === par+1 ? C.turf : C.pine)) : C.turf),
+        pointBorderColor: 'white', pointBorderWidth: 1.5,
+      }];
+      if (n >= 2) datasets.push({ data: trendline(scores), borderColor: C.blue, borderWidth: 1.5, borderDash:[4,3], pointRadius:0, fill:false, tension:0 });
+      if (par) datasets.push({ data: Array(n).fill(par), borderColor: C.gold, borderWidth: 1, borderDash:[2,3], pointRadius:0, fill:false });
+
+      chartCharts.push(safeNewChart(el, {
+        type: "line",
+        data: { labels, datasets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display:false },
+            tooltip: par ? { callbacks: { label: ctx => `${ctx.parsed.y} (${ctx.parsed.y > par ? "+" : ""}${ctx.parsed.y - par} vs par)` } } : {},
+          },
+          scales: {
+            x: { ticks: { color: C.muted, font:{size:8}, maxRotation:45 }, grid: { display:false } },
+            y: { ticks: { color: C.muted, font:{size:9}, stepSize:1 }, grid: { color:'#f0f0ee' } },
+          }
+        }
+      }));
+    });
+  }
+</script>
+</body>
+</html>
