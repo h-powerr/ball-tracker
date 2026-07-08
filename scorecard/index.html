@@ -141,16 +141,6 @@
     .month-stat.recent { background: var(--turf-light); }
     .month-stat.recent .mv { color: var(--turf); }
 
-    /* Tabs */
-    .tabs { display: flex; gap: 6px; margin: 10px 0 14px; background: var(--bg); border-radius: 10px; padding: 4px; }
-    .tab {
-      flex: 1; text-align: center; padding: 9px; border-radius: 8px; font-size: 12.5px; font-weight: 700;
-      cursor: pointer; color: var(--muted); transition: all 0.15s; border: none; background: none; -webkit-appearance: none;
-    }
-    .tab.active { background: var(--surface); color: var(--turf); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-
     .hole-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     @media (max-width: 480px) { .hole-grid { grid-template-columns: 1fr; } .stat-card { padding: 12px 6px; } .stat-val { font-size: 19px; } }
 
@@ -247,8 +237,7 @@
   let rawRows   = [];   // flat hole rows from API
   let rounds    = [];   // grouped rounds (all courses)
   let parMap    = {};   // { course: { hole: par } }
-  let activeFormat = 18;
-  let activeTab = "front";
+  let activeFormat = 9;
 
   function escHtml(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
   function escAttr(s) { return String(s).replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
@@ -397,24 +386,27 @@
     destroyCharts();
     const cr = courseRounds();
     const formats = Array.from(new Set(cr.map(r => Number(r.format))));
-    if (!formats.includes(activeFormat)) activeFormat = formats.includes(18) ? 18 : (formats[0] || 18);
+    if (!formats.includes(activeFormat)) activeFormat = formats.includes(9) ? 9 : (formats[0] || 9);
 
     const html = `
-      ${renderMembership()}
-      ${renderCost()}
+      ${renderMembershipAndCost()}
       ${renderOverview(formats)}
       ${renderMonthly()}
-      ${renderTabsShell()}
+      ${renderScoreCharts()}
     `;
     document.getElementById("main-content").innerHTML = html;
     try { renderMonthlyChart(); } catch(e) { console.error("Monthly chart failed", e); }
-    try { renderTabCharts(activeTab); } catch(e) { console.error("Tab charts failed", e); }
+    try { renderScoreChartCanvases(); } catch(e) { console.error("Score charts failed", e); }
   }
 
   // ── Membership + cost (global, not course-scoped) ────────────
-  function renderMembership() {
+  function renderMembershipAndCost() {
+    const eligible = rounds.filter(r => new Date(r.date) >= MEMBER_SINCE && (roundTotal(r, r.format===18?ALL18:FRONT9) != null));
+    const n9  = eligible.filter(r => Number(r.format) === 9).length;
+    const n18 = eligible.filter(r => Number(r.format) === 18).length;
+    const total = n9 * COST_9 + n18 * COST_18;
     return `
-      <div class="section-label">Membership</div>
+      <div class="section-label">Membership &amp; Costs</div>
       <div class="member-banner">
         <div>
           <div class="member-label">Member Since</div>
@@ -424,15 +416,7 @@
           <div class="member-label">Duration</div>
           <div class="member-duration">${memberDurationText()}</div>
         </div>
-      </div>`;
-  }
-  function renderCost() {
-    const eligible = rounds.filter(r => new Date(r.date) >= MEMBER_SINCE && (roundTotal(r, r.format===18?ALL18:FRONT9) != null));
-    const n9  = eligible.filter(r => Number(r.format) === 9).length;
-    const n18 = eligible.filter(r => Number(r.format) === 18).length;
-    const total = n9 * COST_9 + n18 * COST_18;
-    return `
-      <div class="section-label">Cost Tracker</div>
+      </div>
       <div class="card cost-card">
         <div>
           <div class="cost-val">£${total.toFixed(2)}</div>
@@ -566,61 +550,27 @@
     }));
   }
 
-  // ── Tabs shell ────────────────────────────────────────────────
-  function renderTabsShell() {
-    return `
-      <div class="section-label">Score Charts</div>
-      <div class="tabs">
-        <button class="tab ${activeTab==='front'?'active':''}" onclick="switchTab('front',this)">Front 9</button>
-        <button class="tab ${activeTab==='back'?'active':''}" onclick="switchTab('back',this)">Back 9</button>
-        <button class="tab ${activeTab==='full18'?'active':''}" onclick="switchTab('full18',this)">Full 18</button>
-      </div>
-      <div id="tab-body"></div>`;
-  }
-  function switchTab(name, btn) {
-    activeTab = name;
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    btn.classList.add("active");
-    renderTabCharts(name);
-  }
+  // ── Score Charts: one Front-9 round chart + a continuous Hole 1-18 list ──
+  // (no tabs — a run of holes with zero data, e.g. 10-18 before any 18-hole
+  // round is played, collapses into one placeholder instead of gating the
+  // whole page behind a "not enough rounds" wall.)
+  function renderScoreCharts() {
+    const roundsWithFront9 = courseRounds()
+      .filter(r => roundTotal(r, FRONT9) != null);
 
-  function renderTabCharts(tab) {
-    const body = document.getElementById("tab-body");
-    if (!body) return;
+    const par = coursePar(FRONT9);
+    const bogeyGolf = par != null ? par + 9 : null;
+    const dblBogeyGolf = par != null ? par + 18 : null;
 
-    let holeList, label, roundsForTab;
-    if (tab === "front") {
-      holeList = FRONT9; label = "Front 9";
-      roundsForTab = courseRounds().filter(r => roundTotal(r, FRONT9) != null);
-    } else if (tab === "back") {
-      holeList = BACK9; label = "Back 9";
-      roundsForTab = courseRounds().filter(r => roundTotal(r, BACK9) != null);
-    } else {
-      holeList = ALL18; label = "Full 18";
-      roundsForTab = courseRounds().filter(r => roundTotal(r, ALL18) != null);
-    }
-    roundsForTab.sort((a,b) => new Date(a.date) - new Date(b.date));
-
-    if (roundsForTab.length < 3) {
-      const need = 3 - roundsForTab.length;
-      body.innerHTML = `
-        <div class="card placeholder-card">
-          <div class="pi">⛳</div>
-          <div class="pt">${need} more round${need!==1?"s":""} needed to unlock this chart</div>
-          <div class="ps">${label} needs at least 3 complete rounds at ${escHtml(currentCourse)}. You have ${roundsForTab.length}.</div>
-        </div>`;
-      return;
-    }
-
-    const par = coursePar(holeList);
-    const bogeyGolf = par != null ? par + holeList.length : null;
-    const dblBogeyGolf = par != null ? par + holeList.length * 2 : null;
-    const perHoleList = tab === "back" ? BACK9 : (tab === "front" ? FRONT9 : []);
-
-    body.innerHTML = `
+    const roundChartHtml = roundsWithFront9.length < 3 ? `
+      <div class="card placeholder-card">
+        <div class="pi">⛳</div>
+        <div class="pt">${3 - roundsWithFront9.length} more round${(3 - roundsWithFront9.length) !== 1 ? "s" : ""} needed to unlock this chart</div>
+        <div class="ps">Round by Round needs at least 3 complete Front 9 rounds at ${escHtml(currentCourse)}. You have ${roundsWithFront9.length}.</div>
+      </div>` : `
       <div class="card">
-        <div class="card-title">Round by Round — ${label}</div>
-        <div class="card-meta">${par ? `Par ${par} · ` : ""}${roundsForTab.length} rounds tracked at ${escHtml(currentCourse)}</div>
+        <div class="card-title">Round by Round — Front 9</div>
+        <div class="card-meta">${par ? `Par ${par} · ` : ""}${roundsWithFront9.length} rounds tracked at ${escHtml(currentCourse)}</div>
         <div class="chart-wrap-lg"><canvas id="roundChart"></canvas></div>
         <div class="legend">
           <div class="legend-item"><div class="legend-dot" style="background:${C.turf}"></div>Gross score</div>
@@ -628,9 +578,12 @@
           ${bogeyGolf ? `<div class="legend-item"><div class="legend-line" style="border-top:2px dashed ${C.blue}"></div>Bogey golf (${bogeyGolf})</div>` : ""}
           ${dblBogeyGolf ? `<div class="legend-item"><div class="legend-line" style="border-top:2px dashed ${C.gold}"></div>Dbl bogey golf (${dblBogeyGolf})</div>` : ""}
         </div>
-      </div>
-      ${perHoleList.length ? `
-      <div class="section-label">Per Hole — ${label}</div>
+      </div>`;
+
+    return `
+      <div class="section-label">Score Charts</div>
+      ${roundChartHtml}
+      <div class="section-label">Per Hole</div>
       <div class="legend" style="margin:0 0 10px">
         <div class="legend-item"><div class="legend-dot" style="background:${C.gold}"></div>Parred or better</div>
         <div class="legend-item"><div class="legend-dot" style="background:${C.turf}"></div>Bogey</div>
@@ -638,11 +591,18 @@
         <div class="legend-item"><div class="legend-line" style="border-top:2px dashed ${C.pine}"></div>Trend</div>
         <div class="legend-item"><div class="legend-line" style="border-top:2px dashed ${C.gold}"></div>Par</div>
       </div>
-      <div class="hole-grid" id="hole-charts-grid"></div>` : ""}
+      <div class="hole-grid" id="hole-charts-grid"></div>
     `;
+  }
 
-    renderRoundChart(roundsForTab, holeList, bogeyGolf, dblBogeyGolf);
-    if (perHoleList.length) renderHoleCharts(perHoleList, roundsForTab);
+  function renderScoreChartCanvases() {
+    const cr = courseRounds();
+    const roundsWithFront9 = cr.filter(r => roundTotal(r, FRONT9) != null);
+    if (roundsWithFront9.length >= 3) {
+      const par = coursePar(FRONT9);
+      renderRoundChart(roundsWithFront9, FRONT9, par != null ? par + 9 : null, par != null ? par + 18 : null);
+    }
+    renderHoleCharts(cr);
   }
 
   function renderRoundChart(roundsForTab, holeList, bogeyGolf, dblBogeyGolf) {
@@ -679,14 +639,27 @@
     }));
   }
 
-  function renderHoleCharts(holeList, roundsForTab) {
+  function renderHoleCharts(cr) {
     const grid = document.getElementById("hole-charts-grid");
-    if (!grid || !holeList.length) return;
+    if (!grid) return;
     const pm = parMap[currentCourse] || {};
 
-    grid.innerHTML = holeList.map(h => {
+    // Individual cards for holes 1..cutoff-1; a trailing run of holes with
+    // zero data collapses into one combined placeholder card.
+    const holeCounts = {};
+    for (let h = 1; h <= 18; h++) {
+      holeCounts[h] = cr.filter(r => r.holes[h] && r.holes[h].score != null).length;
+    }
+    let cutoff = 19;
+    for (let h = 18; h >= 1; h--) {
+      if (holeCounts[h] === 0) cutoff = h; else break;
+    }
+    const individualHoles = [];
+    for (let h = 1; h < cutoff; h++) individualHoles.push(h);
+
+    const cardsHtml = individualHoles.map(h => {
       const par = pm[h];
-      const scores = roundsForTab.map(r => r.holes[h] && r.holes[h].score).filter(s => s != null);
+      const scores = cr.map(r => r.holes[h] && r.holes[h].score).filter(s => s != null);
       const best = scores.length ? Math.min(...scores) : null;
       const avg = scores.length ? round1(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
       const parredCount = par ? scores.filter(s => s <= par).length : 0;
@@ -701,11 +674,20 @@
         </div>`;
     }).join("");
 
-    holeList.forEach(h => {
+    const combinedPlaceholder = cutoff <= 18 ? `
+      <div class="card placeholder-card" style="grid-column:1/-1">
+        <div class="pi">⛳</div>
+        <div class="pt">Hole ${cutoff} onwards needs more data</div>
+        <div class="ps">Play rounds covering these holes to unlock their charts.</div>
+      </div>` : "";
+
+    grid.innerHTML = cardsHtml + combinedPlaceholder;
+
+    individualHoles.forEach(h => {
       const el = document.getElementById(`hole-${h}`);
       if (!el) return;
       const par = pm[h];
-      const pairs = roundsForTab
+      const pairs = cr
         .map(r => ({ date: r.date, score: r.holes[h] && r.holes[h].score }))
         .filter(p => p.score != null);
       const labels = pairs.map(p => new Date(p.date).toLocaleDateString("en-GB",{day:"2-digit",month:"2-digit"}));
