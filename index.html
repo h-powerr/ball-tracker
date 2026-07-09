@@ -607,6 +607,13 @@
     <span class="sheet-title">Ball Stock Summary</span>
     <button class="sheet-close" onclick="closeAll()">✕</button>
   </div>
+  <div class="topnav-wrap">
+    <div class="topnav">
+      <button onclick="closeAll(); openHoleStats();">Hole Stats</button>
+      <button onclick="closeAll(); openRoundStats();">Round Stats</button>
+      <button class="active">Ball Stock</button>
+    </div>
+  </div>
   <div class="sheet-body" id="body-summary" style="padding-bottom:60px"></div>
   <div style="position:absolute;bottom:0;left:0;right:0;padding:10px 16px;background:var(--surface);border-top:1px solid var(--border-light)">
     <a href="https://docs.google.com/spreadsheets/d/11M7cpapF5awI2P0XEI05RboJbZG2SleJTP0xYRj0x5g/edit?gid=415546596#gid=415546596"
@@ -666,9 +673,9 @@
   </div>
   <div class="topnav-wrap">
     <div class="topnav">
-      <button onclick="closeHoleStats()">Ball Tracker</button>
       <button class="active">Hole Stats</button>
       <button onclick="closeHoleStats(); openRoundStats();">Round Stats</button>
+      <button onclick="closeHoleStats(); openStockSummary();">Ball Stock</button>
     </div>
   </div>
   <div class="sheet-full-body" id="body-holestats">
@@ -682,6 +689,13 @@
   <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;border-bottom:1px solid var(--border-light);flex-shrink:0">
     <span class="sheet-title">Round Stats</span>
     <button class="sheet-close" onclick="closeRoundStats()">✕</button>
+  </div>
+  <div class="topnav-wrap">
+    <div class="topnav">
+      <button onclick="closeRoundStats(); openHoleStats();">Hole Stats</button>
+      <button class="active">Round Stats</button>
+      <button onclick="closeRoundStats(); openStockSummary();">Ball Stock</button>
+    </div>
   </div>
   <iframe id="roundstats-iframe" title="Round Stats" style="flex:1;width:100%;border:none;background:var(--bg)"></iframe>
 </div>
@@ -1030,6 +1044,12 @@
     const openParam = new URLSearchParams(location.search).get("open");
     if (openParam === "holestats") openHoleStats();
     if (openParam === "roundstats") openRoundStats();
+    if (openParam === "stock") openStockSummary();
+
+    // Warm the Round Stats iframe in the background (after the main app's
+    // own data calls have gone out) so opening the popup feels instant
+    // instead of paying for a fresh document + Chart.js load on first tap.
+    setTimeout(prefetchRoundStats, 1500);
   });
 
   // Close select sheet on outside click only when it's open
@@ -1422,6 +1442,7 @@
     document.getElementById("overlay").classList.remove("open");
     ["sheet-restore","sheet-add","sheet-summary","sheet-select"].forEach(id => document.getElementById(id).classList.remove("open"));
     document.getElementById("sheet-holestats").classList.remove("open");
+    document.getElementById("sheet-roundstats").classList.remove("open");
   }
 
   // ── Lost Balls ────────────────────────────────────────────────
@@ -1805,14 +1826,15 @@
 
   // ── Round Stats Sheet (embeds /scorecard/index.html) ────────────
   let roundStatsLoaded = false;
+  function prefetchRoundStats() {
+    if (roundStatsLoaded) return;
+    document.getElementById("roundstats-iframe").src = "scorecard/index.html?embed=1";
+    roundStatsLoaded = true;
+  }
   function openRoundStats() {
     document.getElementById("overlay").classList.add("open");
     document.getElementById("sheet-roundstats").classList.add("open");
-    const iframe = document.getElementById("roundstats-iframe");
-    if (!roundStatsLoaded) {
-      iframe.src = "scorecard/index.html?embed=1";
-      roundStatsLoaded = true;
-    }
+    prefetchRoundStats();
   }
   function closeRoundStats() {
     document.getElementById("overlay").classList.remove("open");

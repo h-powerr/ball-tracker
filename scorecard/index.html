@@ -98,11 +98,6 @@
     .member-since { font-size: 13px; color: rgba(255,255,255,0.85); margin-top: 3px; }
     .member-duration { font-size: 16px; color: #fff; font-weight: 800; }
 
-    /* Cost tracker */
-    .cost-card { display: flex; align-items: center; justify-content: space-between; }
-    .cost-val { font-size: 30px; font-weight: 800; color: var(--turf); line-height: 1; }
-    .cost-sub { font-size: 12px; color: var(--muted); margin-top: 5px; }
-
     /* Stat cards */
     .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px 10px; text-align: center; }
@@ -194,9 +189,9 @@
 
   <div class="topnav-wrap" id="rs-topnav">
     <div class="topnav">
-      <a href="../index.html">Ball Tracker</a>
       <a href="../index.html?open=holestats">Hole Stats</a>
       <button class="active">Round Stats</button>
+      <a href="../index.html?open=stock">Ball Stock</a>
     </div>
   </div>
 
@@ -220,6 +215,13 @@
   const MEMBER_SINCE = new Date("2026-05-16T00:00:00");
   const COST_9  = 18.50;
   const COST_18 = 30.00;
+  // Cumulative annual membership fee, one entry per renewal — each period's
+  // cost is due in full once its start date arrives (not prorated daily).
+  // Add future renewals here as rates change.
+  const MEMBERSHIP_PERIODS = [
+    { start: "2026-05-16", cost: 440 },
+    { start: "2027-06-01", cost: 540 },
+  ];
 
   // ── API ───────────────────────────────────────────────────────
   async function apiGet(action, params) {
@@ -315,18 +317,39 @@
   }
 
   // ── Membership duration ──────────────────────────────────────
+  // Precision scales down as membership ages: days -> weeks -> months+weeks
+  // -> years+fractional months. Weeks reappear alongside months (unlike the
+  // "suppress weeks once months exist" rule used elsewhere) because "1 Month
+  // 3 Weeks" reads better than "1 Month" alone at this scale, but "1 Year
+  // 6.5 Months" is more useful than tracking odd weeks once you're in years.
+  const AVG_DAYS_PER_MONTH = 30.44;
   function memberDurationText() {
     const now = new Date();
-    const days = Math.max(0, Math.floor((now - MEMBER_SINCE) / 86400000));
-    const months = Math.floor(days / 30);
-    const rem = days % 30;
-    const weeks = Math.floor(rem / 7);
-    const restDays = rem % 7;
-    let parts = [];
-    if (months > 0) parts.push(`${months} Month${months !== 1 ? "s" : ""}`);
-    if (weeks > 0 && months === 0) parts.push(`${weeks} Week${weeks !== 1 ? "s" : ""}`);
-    if (parts.length === 0) parts.push(`${days} Day${days !== 1 ? "s" : ""}`);
-    return parts.join(", ");
+    const totalDays = Math.max(0, Math.floor((now - MEMBER_SINCE) / 86400000));
+    const totalMonths = totalDays / AVG_DAYS_PER_MONTH;
+
+    if (totalDays < 7) {
+      return `${totalDays} Day${totalDays !== 1 ? "s" : ""}`;
+    }
+    if (totalMonths < 1) {
+      const weeks = Math.floor(totalDays / 7);
+      const days = totalDays % 7;
+      const parts = [`${weeks} Week${weeks !== 1 ? "s" : ""}`];
+      if (days > 0) parts.push(`${days} Day${days !== 1 ? "s" : ""}`);
+      return parts.join(" ");
+    }
+    if (totalMonths < 12) {
+      const months = Math.floor(totalMonths);
+      const weeks = Math.round((totalDays - months * AVG_DAYS_PER_MONTH) / 7);
+      const parts = [`${months} Month${months !== 1 ? "s" : ""}`];
+      if (weeks > 0) parts.push(`${weeks} Week${weeks !== 1 ? "s" : ""}`);
+      return parts.join(" ");
+    }
+    const years = Math.floor(totalMonths / 12);
+    const remMonths = Math.round((totalMonths - years * 12) * 10) / 10;
+    const parts = [`${years} Year${years !== 1 ? "s" : ""}`];
+    if (remMonths > 0) parts.push(`${remMonths} Month${remMonths !== 1 ? "s" : ""}`);
+    return parts.join(" ");
   }
 
   // ── Trend line (least squares) ──────────────────────────────
@@ -400,30 +423,38 @@
   }
 
   // ── Membership + cost (global, not course-scoped) ────────────
+  // Cost tracked = what you'd have paid at pay-per-round rates. Once that
+  // overtakes the cumulative membership fees paid to date, the membership
+  // has "paid for itself" — flip to green and show the surplus as savings.
   function renderMembershipAndCost() {
     const eligible = rounds.filter(r => new Date(r.date) >= MEMBER_SINCE && (roundTotal(r, r.format===18?ALL18:FRONT9) != null));
     const n9  = eligible.filter(r => Number(r.format) === 9).length;
     const n18 = eligible.filter(r => Number(r.format) === 18).length;
-    const total = n9 * COST_9 + n18 * COST_18;
+    const payPerRoundTotal = n9 * COST_9 + n18 * COST_18;
+
+    const membershipPaidToDate = MEMBERSHIP_PERIODS
+      .filter(p => new Date(p.start) <= new Date())
+      .reduce((sum, p) => sum + p.cost, 0);
+
+    const isAhead = payPerRoundTotal > membershipPaidToDate;
+    const diff = Math.abs(payPerRoundTotal - membershipPaidToDate);
+    const costColour = isAhead ? "#4ade80" : "#ff9d9d";
+    const costCaption = isAhead ? `£${diff.toFixed(2)} paid back by golf` : `£${diff.toFixed(2)} to break even`;
+
     return `
       <div class="section-label">Membership &amp; Costs</div>
-      <div class="member-banner">
+      <div class="member-banner" style="align-items:flex-start">
         <div>
           <div class="member-label">Member Since</div>
           <div class="member-since">${MEMBER_SINCE.toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}</div>
-        </div>
-        <div style="text-align:right">
-          <div class="member-label">Duration</div>
+          <div class="member-label" style="margin-top:10px">Duration</div>
           <div class="member-duration">${memberDurationText()}</div>
         </div>
-      </div>
-      <div class="card cost-card">
-        <div>
-          <div class="cost-val">£${total.toFixed(2)}</div>
-          <div class="cost-sub">${n9 + n18} round${(n9+n18)!==1?"s":""} since ${MEMBER_SINCE.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</div>
-        </div>
-        <div style="text-align:right;font-size:11px;color:var(--muted)">
-          ${n9} × 9-hole (£${COST_9.toFixed(2)})<br>${n18} × 18-hole (£${COST_18.toFixed(2)})
+        <div style="text-align:right">
+          <div class="member-label">Pay-Per-Round Cost</div>
+          <div class="member-duration" style="color:${costColour};font-size:19px">£${payPerRoundTotal.toFixed(2)}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px">${costCaption}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:6px">${n9} × 9-hole · ${n18} × 18-hole</div>
         </div>
       </div>`;
   }
