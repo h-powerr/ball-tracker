@@ -122,14 +122,17 @@
     .hole-card-head { display: flex; align-items: center; justify-content: space-between; }
     .hole-card-title { font-size: 14px; font-weight: 800; color: var(--ink); }
     .hole-card-par { font-size: 11px; font-weight: 700; color: var(--muted); background: var(--border-light); padding: 2px 8px; border-radius: 10px; }
-    .score-stepper { display: flex; align-items: center; justify-content: center; gap: 20px; padding: 4px 0; }
-    .score-btn {
-      width: 46px; height: 46px; border-radius: 50%; border: 1.5px solid var(--border);
-      background: var(--surface); font-size: 22px; font-weight: 700; color: var(--turf);
-      display: flex; align-items: center; justify-content: center; cursor: pointer; -webkit-appearance: none;
+    /* Tap grids — single tap sets the value, nothing pre-selected */
+    .tap-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .tap-btn {
+      padding: 10px 2px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--surface);
+      font-size: 14px; font-weight: 700; color: var(--ink); cursor: pointer; text-align: center;
+      -webkit-appearance: none; transition: all 0.12s;
     }
-    .score-btn:active { background: var(--turf-light); transform: scale(0.93); }
-    .score-val { font-size: 36px; font-weight: 800; color: var(--ink); min-width: 56px; text-align: center; }
+    .tap-btn.selected { border-color: var(--turf-border); background: var(--turf-light); color: var(--turf); }
+    .tap-btn:active { transform: scale(0.94); }
+    .tap-grid-score { margin: 2px 0 4px; }
+    .tap-grid-score .tap-btn { padding: 13px 2px; font-size: 17px; font-weight: 800; }
 
     .detail-toggle {
       font-size: 12px; font-weight: 700; color: var(--turf); background: none; border: none;
@@ -137,17 +140,18 @@
     }
     .detail-body { display: none; flex-direction: column; gap: 12px; padding-top: 10px; border-top: 1px dashed var(--border); }
     .detail-body.open { display: flex; }
-    .mini-row { display: flex; align-items: center; gap: 10px; }
-    .mini-row .lbl { flex: 1; font-size: 13px; color: var(--muted); font-weight: 600; }
-    .mini-stepper { display: flex; align-items: center; gap: 8px; }
-    .mini-btn { width: 28px; height: 28px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--surface); font-size: 15px; font-weight: 700; color: var(--ink); cursor: pointer; }
-    .mini-val { min-width: 20px; text-align: center; font-weight: 800; font-size: 14px; }
+    .mini-row { display: flex; flex-direction: column; gap: 6px; }
+    .mini-row .lbl { font-size: 13px; color: var(--muted); font-weight: 600; }
     .chip-row { display: flex; gap: 6px; }
     .chip-opt {
-      padding: 6px 12px; border-radius: 9px; border: 1.5px solid var(--border); font-size: 12px;
-      font-weight: 700; color: var(--muted); background: var(--surface); cursor: pointer; min-width: 38px; text-align: center;
+      flex: 1; padding: 8px 6px; border-radius: 9px; border: 1.5px solid var(--border); font-size: 12px;
+      font-weight: 700; color: var(--muted); background: var(--surface); cursor: pointer; text-align: center;
+      -webkit-appearance: none; transition: all 0.12s;
     }
     .chip-opt.selected { border-color: var(--turf-border); background: var(--turf-light); color: var(--turf); }
+
+    .progress-hint { text-align: center; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+    .progress-hint.complete { color: var(--turf); }
 
     /* Success screen */
     .success-wrap { text-align: center; padding: 24px 8px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
@@ -243,7 +247,8 @@
     <div class="step-panel" id="panel-2">
       <div class="err-banner" id="err-banner"></div>
       <div id="hole-cards" style="display:flex;flex-direction:column;gap:10px"></div>
-      <button class="btn btn-pine" id="save-round-btn" onclick="submitRound()">Save Round</button>
+      <div class="progress-hint" id="save-progress">0 of 9 holes scored</div>
+      <button class="btn btn-pine" id="save-round-btn" onclick="submitRound()" disabled>Save Round</button>
     </div>
 
     <!-- STEP 3: Confirmation -->
@@ -428,9 +433,24 @@
   function buildHoleCards() {
     holes = [];
     for (let h = 1; h <= format_; h++) {
-      holes.push({ hole: h, score: 4, putts: null, penalties: 0, fairwayHit: null, gir: null });
+      holes.push({ hole: h, score: null, putts: null, penalties: null, fairwayHit: null, gir: null });
     }
     renderHoleCards();
+  }
+  // Putts/Penalties share a 0-3 + "≥4" tap grid (stored as 4 for the catch-all).
+  const SMALL_GRID_OPTIONS = [0, 1, 2, 3, 4];
+  function smallGridHtml(i, prefix, selected) {
+    return SMALL_GRID_OPTIONS.map(n => {
+      const label = n === 4 ? "≥4" : n;
+      return `<div class="tap-btn ${selected === n ? "selected" : ""}" onclick="setCount(${i},'${prefix === "putts" ? "putts" : "penalties"}',${n})" id="${prefix}-${n}-${i}">${label}</div>`;
+    }).join("");
+  }
+  function scoreGridHtml(i, selected) {
+    let html = "";
+    for (let n = 1; n <= 15; n++) {
+      html += `<div class="tap-btn ${selected === n ? "selected" : ""}" onclick="setScore(${i},${n})" id="score-${n}-${i}">${n}</div>`;
+    }
+    return html;
   }
   function renderHoleCards() {
     const wrap = document.getElementById("hole-cards");
@@ -443,30 +463,18 @@
           <div class="hole-card-title">Hole ${h.hole}</div>
           ${par ? `<div class="hole-card-par">Par ${par}</div>` : ""}
         </div>
-        <div class="score-stepper">
-          <button class="score-btn" onclick="changeScore(${i},-1)">−</button>
-          <div class="score-val" id="score-val-${i}">${h.score}</div>
-          <button class="score-btn" onclick="changeScore(${i},1)">＋</button>
-        </div>
+        <div class="tap-grid tap-grid-score">${scoreGridHtml(i, h.score)}</div>
         <button class="detail-toggle" onclick="toggleDetail(${i})">
           <span id="detail-caret-${i}">▸</span> Add detail (putts, penalties, fairway, GIR)
         </button>
         <div class="detail-body" id="detail-body-${i}">
           <div class="mini-row">
             <span class="lbl">Putts</span>
-            <div class="mini-stepper">
-              <button class="mini-btn" onclick="changePutts(${i},-1)">−</button>
-              <span class="mini-val" id="putts-val-${i}">–</span>
-              <button class="mini-btn" onclick="changePutts(${i},1)">＋</button>
-            </div>
+            <div class="tap-grid">${smallGridHtml(i, "putts", h.putts)}</div>
           </div>
           <div class="mini-row">
             <span class="lbl">Penalties</span>
-            <div class="mini-stepper">
-              <button class="mini-btn" onclick="changePenalties(${i},-1)">−</button>
-              <span class="mini-val" id="pen-val-${i}">0</span>
-              <button class="mini-btn" onclick="changePenalties(${i},1)">＋</button>
-            </div>
+            <div class="tap-grid">${smallGridHtml(i, "pen", h.penalties)}</div>
           </div>
           <div class="mini-row">
             <span class="lbl">Fairway Hit</span>
@@ -486,27 +494,42 @@
         </div>
       </div>`;
     }).join("");
+    updateSaveProgress();
   }
-  function changeScore(i, delta) {
+  function setScore(i, val) {
     const h = holes[i];
-    h.score = Math.min(15, Math.max(1, h.score + delta));
-    document.getElementById(`score-val-${i}`).textContent = h.score;
+    h.score = (h.score === val) ? null : val;
+    for (let n = 1; n <= 15; n++) {
+      const el = document.getElementById(`score-${n}-${i}`);
+      if (el) el.classList.toggle("selected", h.score === n);
+    }
+    updateSaveProgress();
+  }
+  function setCount(i, field, val) {
+    const h = holes[i];
+    h[field] = (h[field] === val) ? null : val;
+    const prefix = field === "putts" ? "putts" : "pen";
+    SMALL_GRID_OPTIONS.forEach(n => {
+      const el = document.getElementById(`${prefix}-${n}-${i}`);
+      if (el) el.classList.toggle("selected", h[field] === n);
+    });
+  }
+  function updateSaveProgress() {
+    const total = holes.length;
+    const done = holes.filter(h => h.score != null).length;
+    const hint = document.getElementById("save-progress");
+    const btn = document.getElementById("save-round-btn");
+    if (hint) {
+      hint.textContent = done === total ? `All ${total} holes scored` : `${done} of ${total} holes scored`;
+      hint.classList.toggle("complete", done === total);
+    }
+    if (btn) btn.disabled = done < total;
   }
   function toggleDetail(i) {
     const body = document.getElementById(`detail-body-${i}`);
     const caret = document.getElementById(`detail-caret-${i}`);
     const open = body.classList.toggle("open");
     caret.textContent = open ? "▾" : "▸";
-  }
-  function changePutts(i, delta) {
-    const h = holes[i];
-    h.putts = Math.min(6, Math.max(0, (h.putts === null ? 2 : h.putts) + delta));
-    document.getElementById(`putts-val-${i}`).textContent = h.putts;
-  }
-  function changePenalties(i, delta) {
-    const h = holes[i];
-    h.penalties = Math.min(5, Math.max(0, (h.penalties || 0) + delta));
-    document.getElementById(`pen-val-${i}`).textContent = h.penalties;
   }
   function setChip(i, field, val) {
     const h = holes[i];
