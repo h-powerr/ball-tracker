@@ -445,9 +445,10 @@
       return `<div class="tap-btn ${selected === n ? "selected" : ""}" onclick="setCount(${i},'${prefix === "putts" ? "putts" : "penalties"}',${n})" id="${prefix}-${n}-${i}">${label}</div>`;
     }).join("");
   }
+  const MAX_SCORE = 10;
   function scoreGridHtml(i, selected) {
     let html = "";
-    for (let n = 1; n <= 15; n++) {
+    for (let n = 1; n <= MAX_SCORE; n++) {
       html += `<div class="tap-btn ${selected === n ? "selected" : ""}" onclick="setScore(${i},${n})" id="score-${n}-${i}">${n}</div>`;
     }
     return html;
@@ -457,6 +458,8 @@
     const parMap = courseParMap[location_] || {};
     wrap.innerHTML = holes.map((h, i) => {
       const par = parMap[h.hole];
+      const isPar3 = par === 3;
+      const detailLabel = isPar3 ? "putts, penalties, GIR" : "putts, penalties, fairway, GIR";
       return `
       <div class="hole-card">
         <div class="hole-card-head">
@@ -465,7 +468,7 @@
         </div>
         <div class="tap-grid tap-grid-score">${scoreGridHtml(i, h.score)}</div>
         <button class="detail-toggle" onclick="toggleDetail(${i})">
-          <span id="detail-caret-${i}">▸</span> Add detail (putts, penalties, fairway, GIR)
+          <span id="detail-caret-${i}">▸</span> Add detail (${detailLabel})
         </button>
         <div class="detail-body" id="detail-body-${i}">
           <div class="mini-row">
@@ -476,6 +479,7 @@
             <span class="lbl">Penalties</span>
             <div class="tap-grid">${smallGridHtml(i, "pen", h.penalties)}</div>
           </div>
+          ${isPar3 ? "" : `
           <div class="mini-row">
             <span class="lbl">Fairway Hit</span>
             <div class="chip-row">
@@ -483,7 +487,7 @@
               <div class="chip-opt" onclick="setChip(${i},'fairwayHit','N')" id="fw-N-${i}">N</div>
               <div class="chip-opt" onclick="setChip(${i},'fairwayHit','NA')" id="fw-NA-${i}">N/A</div>
             </div>
-          </div>
+          </div>`}
           <div class="mini-row">
             <span class="lbl">GIR</span>
             <div class="chip-row">
@@ -499,7 +503,7 @@
   function setScore(i, val) {
     const h = holes[i];
     h.score = (h.score === val) ? null : val;
-    for (let n = 1; n <= 15; n++) {
+    for (let n = 1; n <= MAX_SCORE; n++) {
       const el = document.getElementById(`score-${n}-${i}`);
       if (el) el.classList.toggle("selected", h.score === n);
     }
